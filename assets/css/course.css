@@ -1,0 +1,339 @@
+/* Course Page Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    margin: 0;
+    background: #ffffff;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Header */
+header {
+    background: #ffffff;
+    padding: 1rem 0;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+header nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #1a365d;
+}
+
+.back-link {
+    color: #1a365d;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border: 1px solid #1a365d;
+    border-radius: 6px;
+    transition: all 0.3s;
+}
+
+.back-link:hover {
+    background: #1a365d;
+    color: white;
+}
+
+/* Hero Course Section */
+.hero-course {
+    background: linear-gradient(180deg, #ffffff 0%, #e8f4fd 30%, #b8d4f0 70%, #4a90e2 100%);
+    padding: 4rem 0;
+    text-align: center;
+    color: #1a365d;
+}
+
+.hero-logo {
+    width: 320px;
+    height: auto;
+    margin-bottom: 2rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(26,54,93,0.15);
+}
+
+.hero-course h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #1a365d;
+}
+
+.hero-course p {
+    font-size: 1.2rem;
+    margin-bottom: 0;
+    color: #2d3748;
+    opacity: 0.9;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Content Sections */
+.content-section {
+    padding: 3rem 0;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #1a365d;
+    margin-bottom: 2.5rem;
+    letter-spacing: 0.5px;
+}
+
+/* Course Grid */
+.course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.course-card {
+    background: #f7fafc;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(26,54,93,0.1);
+    border: 1px solid #e8f4fd;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.course-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(26,54,93,0.15);
+}
+
+.course-card h3 {
+    color: #1a365d;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    letter-spacing: 0.3px;
+}
+
+.course-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.course-card li {
+    padding: 0.5rem 0;
+    color: #555;
+    border-bottom: 1px solid #e8f4fd;
+}
+
+.course-card li:last-child {
+    border-bottom: none;
+}
+
+/* Levels Section */
+.levels-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.level-box {
+    background: linear-gradient(135deg, #4a90e2, #1a365d);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(26,54,93,0.2);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.level-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(26,54,93,0.3);
+}
+
+.level-box h4 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: white;
+}
+
+.level-box p {
+    margin: 0.8rem 0;
+    color: white;
+    opacity: 0.95;
+}
+
+.level-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.level-box li {
+    padding: 0.3rem 0;
+    color: white;
+    opacity: 0.9;
+}
+
+/* Price Box */
+.price-box {
+    background: linear-gradient(135deg, #1a365d, #2c5282);
+    color: white;
+    padding: 3rem;
+    border-radius: 15px;
+    text-align: center;
+    margin: 3rem 0;
+    box-shadow: 0 8px 25px rgba(26,54,93,0.2);
+}
+
+.price-box h3 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: white;
+}
+
+.price {
+    font-size: 3rem;
+    font-weight: bold;
+    color: white;
+    margin: 1rem 0;
+}
+
+.price-details {
+    font-size: 1rem;
+    margin: 1.5rem 0;
+    color: white;
+    opacity: 0.9;
+    line-height: 1.6;
+}
+
+/* CTA Button */
+.cta-button {
+    background: white;
+    color: #1a365d;
+    padding: 1rem 2rem;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s;
+    border: 2px solid white;
+}
+
+.cta-button:hover {
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+}
+
+/* FAQ Section */
+.faq-section {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background: #f7fafc;
+    margin: 1rem 0;
+    border-radius: 8px;
+    border: 1px solid #e8f4fd;
+    overflow: hidden;
+    transition: box-shadow 0.3s;
+}
+
+.faq-item:hover {
+    box-shadow: 0 2px 8px rgba(26,54,93,0.1);
+}
+
+.faq-question {
+    background: #1a365d;
+    color: white;
+    padding: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.faq-question:hover {
+    background: #2c5282;
+}
+
+.faq-answer {
+    padding: 1.2rem;
+    color: #555;
+    line-height: 1.6;
+    display: none;
+}
+
+/* Footer */
+footer {
+    background: #1a365d;
+    color: white;
+    text-align: center;
+    padding: 2rem;
+    margin-top: 3rem;
+}
+
+footer p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-logo {
+        width: 280px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .hero-course h1 {
+        font-size: 2.2rem;
+    }
+    
+    .hero-course p {
+        font-size: 1rem;
+    }
+    
+    .course-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .levels-section {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .level-box {
+        padding: 1.5rem;
+    }
+    
+    .price-box {
+        padding: 2rem;
+    }
+    
+    .price {
+        font-size: 2.5rem;
+    }
+    
+    .container {
+        padding: 0 1rem;
+    }
+}
