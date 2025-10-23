@@ -126,7 +126,7 @@ body {
   /* ---------- HERO SECTION ---------- */
   .hero {
     background: linear-gradient(180deg, #ffffff 0%, #e8f4fd 30%, #b8d4f0 70%, #4a90e2 100%);
-    padding: 4rem 2rem;
+    padding: 2rem 2rem;
     text-align: center;
     color: #1a365d;
   }
@@ -138,7 +138,7 @@ body {
     margin-left: auto;
     margin-right: auto;
     border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(30,58,138,0.15);
+    box-shadow: 0 4px 15px rgba(22, 60, 167, 0.15);
   }
   .hero-content h1 {
     font-size: 3rem;
@@ -153,18 +153,18 @@ body {
     opacity: 0.9;
   }
   .btn-hero {
-    background: #1a365d;
+    background: #387bd9;
     color: white;
-    padding: 1rem 2rem;
+    padding: 0.5rem 2rem;
     border-radius: 25px;
     font-weight: bold;
     font-size: 1.1rem;
-    border: 2px solid #1a365d;
+    border: 2px solid #0c499d;
     display: inline-block;
     transition: all 0.3s;
   }
   .btn-hero:hover {
-    background: #2c5282;
+    background: #52ba86;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(26,54,93,0.3);
   }
@@ -197,9 +197,9 @@ body {
   .course-card {
     background: linear-gradient(135deg, #4a90e2, #1a365d);
     color: white;
-    padding: 1.5rem;
+    padding: 0.75rem;
     border-radius: 12px;
-    width: 320px;
+    width: 300px;
     text-align: center;
     box-shadow: 0 4px 15px rgba(26,54,93,0.15);
     transition: transform 0.3s, box-shadow 0.3s;
@@ -210,25 +210,25 @@ body {
     box-shadow: 0 6px 20px rgba(26,54,93,0.25);
   }
   .course-card h3 {
-    font-size: 1.3rem;
+    font-size: 2rem;
     font-weight: 600;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.4rem;
     color: white;
     letter-spacing: 0.5px;
   }
   .course-card p {
-    font-size: 0.9rem;
-    margin-bottom: 1.2rem;
+    font-size: 0.7rem;
+    margin-bottom: 0.6rem;
     color: white;
     opacity: 0.95;
-    line-height: 1.5;
+    line-height: 1.4;
   }
   .course-link {
     color: white;
     font-weight: 500;
     text-decoration: underline;
-    font-size: 0.9rem;
-    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
     border-radius: 4px;
     transition: background-color 0.2s;
   }
@@ -736,7 +736,7 @@ body {
     }
     .course-card {
       width: 100%;
-      max-width: 300px;
+      max-width: 150px;
     }
     .contact-cards {
       gap: 1rem;

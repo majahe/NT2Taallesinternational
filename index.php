@@ -2,10 +2,11 @@
 
 <section class="hero">
   <div class="hero-content">
+  
     <img src="assets/img/LOGO.png" alt="NT2 Taalles International Logo" class="hero-logo">
-    <h1>Learn to Speak Dutch Fluently</h1>
-    <p>Professional language training from Russian and English to Dutch.</p>
-    <a href="pages/register.php" class="btn-hero">Start Today</a>
+    <h1>Do you want to learn to speak Dutch quickly?</h1>
+        <h2>Then you've come to the right place!</h2>
+      <a href="pages/register.php" class="btn-hero">Start Today</a>
   </div>
 </section>
 
@@ -33,7 +34,7 @@
     <div class="contact-cards">
       <div class="contact-card">
         <h3>Email</h3>
-        <p>Assel8@gmail.com</p>
+        <p>Info@nt2taallesinternational.com</p>
       </div>
       <div class="contact-card">
         <h3>Website</h3>
