@@ -5,7 +5,7 @@
   
     <img src="assets/img/LOGO.png" alt="NT2 Taalles International Logo" class="hero-logo">
     <h1>Do you want to learn to speak Dutch quickly?</h1>
-        <h2>Then you've come to the right place!</h2>
+        <h2>Then you've come to the right place!!</h2>
       <a href="pages/register.php" class="btn-hero">Start Today</a>
   </div>
 </section>
