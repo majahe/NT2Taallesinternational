@@ -68,6 +68,22 @@ $scheduled_courses = $conn->query("
   WHERE status = 'Scheduled' AND course_date IS NOT NULL
   ORDER BY course_date, course_time ASC
 ");
+
+// Calendar view and navigation
+$view = isset($_GET['view']) ? $_GET['view'] : 'week';
+$current_month = isset($_GET['month']) ? intval($_GET['month']) : date('n');
+$current_year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
+
+// Calculate start and end dates based on view
+if ($view === 'month') {
+    $start_date = date('Y-m-01', mktime(0, 0, 0, $current_month, 1, $current_year));
+    $end_date = date('Y-m-t', mktime(0, 0, 0, $current_month, 1, $current_year));
+} else {
+    // Week view - get current week
+    $week_start = isset($_GET['week_start']) ? $_GET['week_start'] : date('Y-m-d', strtotime('monday this week'));
+    $start_date = $week_start;
+    $end_date = date('Y-m-d', strtotime($week_start . ' +6 days'));
+}
 ?>
 
 <!DOCTYPE html>
@@ -233,7 +249,98 @@ $scheduled_courses = $conn->query("
     .admin-controls span {
       margin-right: 20px;
     }
+    
+    .calendar-day.today {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+    }
+    
+    .calendar-day.other-month {
+      background: #f8f9fa;
+      color: #6c757d;
+    }
   </style>
+  <script>
+    function changeView(view) {
+      const url = new URL(window.location);
+      url.searchParams.set('view', view);
+      if (view === 'week') {
+        url.searchParams.delete('month');
+        url.searchParams.delete('year');
+      }
+      window.location.href = url.toString();
+    }
+    
+    function changeMonth(month) {
+      const url = new URL(window.location);
+      url.searchParams.set('month', month);
+      url.searchParams.set('view', 'month');
+      window.location.href = url.toString();
+    }
+    
+    function changeYear(year) {
+      const url = new URL(window.location);
+      url.searchParams.set('year', year);
+      url.searchParams.set('view', 'month');
+      window.location.href = url.toString();
+    }
+    
+    function navigateCalendar(direction) {
+      const url = new URL(window.location);
+      const currentView = url.searchParams.get('view') || 'week';
+      
+      if (currentView === 'month') {
+        let month = parseInt(url.searchParams.get('month')) || new Date().getMonth() + 1;
+        let year = parseInt(url.searchParams.get('year')) || new Date().getFullYear();
+        
+        if (direction === 'prev') {
+          month--;
+          if (month < 1) {
+            month = 12;
+            year--;
+          }
+        } else if (direction === 'next') {
+          month++;
+          if (month > 12) {
+            month = 1;
+            year++;
+          }
+        } else if (direction === 'today') {
+          const today = new Date();
+          month = today.getMonth() + 1;
+          year = today.getFullYear();
+        }
+        
+        url.searchParams.set('month', month);
+        url.searchParams.set('year', year);
+      } else {
+        // Week view
+        let weekStart = url.searchParams.get('week_start');
+        if (!weekStart) {
+          weekStart = getMonday(new Date()).toISOString().split('T')[0];
+        }
+        
+        if (direction === 'prev') {
+          weekStart = new Date(new Date(weekStart).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        } else if (direction === 'next') {
+          weekStart = new Date(new Date(weekStart).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        } else if (direction === 'today') {
+          weekStart = getMonday(new Date()).toISOString().split('T')[0];
+        }
+        
+        url.searchParams.set('week_start', weekStart);
+      }
+      
+      window.location.href = url.toString();
+    }
+    
+    function getMonday(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      return new Date(d.setDate(diff));
+    }
+  </script>
 </head>
 <body class="dashboard-body">
   <header class="admin-header">
@@ -333,48 +440,127 @@ $scheduled_courses = $conn->query("
 
       <!-- Course Calendar Section -->
       <div class="planning-card course-calendar">
-        <h2>📅 Course Calendar</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2>📅 Course Calendar</h2>
+          
+          <!-- View Selection -->
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <label>View:</label>
+            <select onchange="changeView(this.value)" style="padding: 5px;">
+              <option value="week" <?= $view === 'week' ? 'selected' : '' ?>>Week</option>
+              <option value="month" <?= $view === 'month' ? 'selected' : '' ?>>Month</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="navigateCalendar('prev')" class="btn small">← Previous</button>
+            <button onclick="navigateCalendar('today')" class="btn small">Today</button>
+            <button onclick="navigateCalendar('next')" class="btn small">Next →</button>
+          </div>
+          
+          <div style="text-align: center;">
+            <?php if ($view === 'month'): ?>
+              <h3><?= date('F Y', mktime(0, 0, 0, $current_month, 1, $current_year)) ?></h3>
+            <?php else: ?>
+              <h3><?= date('M j', strtotime($start_date)) ?> - <?= date('M j, Y', strtotime($end_date)) ?></h3>
+            <?php endif; ?>
+          </div>
+          
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <label>Month:</label>
+            <select onchange="changeMonth(this.value)" style="padding: 5px;">
+              <?php for($m = 1; $m <= 12; $m++): ?>
+                <option value="<?= $m ?>" <?= $current_month == $m ? 'selected' : '' ?>>
+                  <?= date('F', mktime(0, 0, 0, $m, 1)) ?>
+                </option>
+              <?php endfor; ?>
+            </select>
+            
+            <label>Year:</label>
+            <select onchange="changeYear(this.value)" style="padding: 5px;">
+              <?php for($y = date('Y') - 1; $y <= date('Y') + 2; $y++): ?>
+                <option value="<?= $y ?>" <?= $current_year == $y ? 'selected' : '' ?>><?= $y ?></option>
+              <?php endfor; ?>
+            </select>
+          </div>
+        </div>
+
         <div class="calendar-grid">
-          <!-- Calendar header -->
-          <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;">Mon</div>
-          <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;">Tue</div>
-          <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;">Wed</div>
-          <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;">Thu</div>
-          <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;">Fri</div>
-          <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;">Sat</div>
-          <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;">Sun</div>
-          
-          <!-- Calendar days would be generated here -->
-          <!-- This is a simplified version - you'd want to generate the full calendar -->
           <?php
-          $current_date = date('Y-m-d');
           $courses_by_date = [];
-          
           if($scheduled_courses) {
             while($course = $scheduled_courses->fetch_assoc()) {
               $courses_by_date[$course['course_date']][] = $course;
             }
           }
           
-          // Generate calendar days (simplified - shows next 7 days)
-          for($i = 0; $i < 7; $i++): 
-            $date = date('Y-m-d', strtotime("+$i days"));
-            $day_name = date('D', strtotime($date));
-            $day_number = date('j', strtotime($date));
-          ?>
-          <div class="calendar-day">
-            <strong><?= $day_name ?> <?= $day_number ?></strong>
-            <?php if(isset($courses_by_date[$date])): ?>
-              <?php foreach($courses_by_date[$date] as $course): ?>
-                <div class="course-slot">
-                  <strong><?= htmlspecialchars($course['name']) ?></strong><br>
-                  <small><?= $course['course_time'] ?> - <?= htmlspecialchars($course['course']) ?></small><br>
-                  <small><?= htmlspecialchars($course['instructor']) ?></small>
-                </div>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </div>
-          <?php endfor; ?>
+          if ($view === 'month'): 
+            // Month view
+            $first_day = date('w', mktime(0, 0, 0, $current_month, 1, $current_year));
+            $days_in_month = date('t', mktime(0, 0, 0, $current_month, 1, $current_year));
+            
+            // Calendar header
+            $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            foreach($days as $day): ?>
+              <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;"><?= $day ?></div>
+            <?php endforeach;
+            
+            // Empty cells for days before month starts
+            for($i = 0; $i < $first_day; $i++): ?>
+              <div class="calendar-day other-month"></div>
+            <?php endfor;
+            
+            // Days of the month
+            for($day = 1; $day <= $days_in_month; $day++): 
+              $date = sprintf('%04d-%02d-%02d', $current_year, $current_month, $day);
+              $is_today = $date === date('Y-m-d');
+              $day_name = date('D', strtotime($date));
+            ?>
+              <div class="calendar-day <?= $is_today ? 'today' : '' ?>">
+                <strong><?= $day ?></strong>
+                <?php if(isset($courses_by_date[$date])): ?>
+                  <?php foreach($courses_by_date[$date] as $course): ?>
+                    <div class="course-slot">
+                      <strong><?= htmlspecialchars($course['name']) ?></strong><br>
+                      <small><?= $course['course_time'] ?> - <?= htmlspecialchars($course['course']) ?></small><br>
+                      <small><?= htmlspecialchars($course['instructor']) ?></small>
+                    </div>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </div>
+            <?php endfor;
+            
+          else: 
+            // Week view
+            $days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            foreach($days as $day): ?>
+              <div style="background: #2196f3; color: white; text-align: center; padding: 10px; font-weight: bold;"><?= $day ?></div>
+            <?php endforeach;
+            
+            // Week days
+            for($i = 0; $i < 7; $i++): 
+              $date = date('Y-m-d', strtotime($start_date . " +$i days"));
+              $day_name = date('D', strtotime($date));
+              $day_number = date('j', strtotime($date));
+              $is_today = $date === date('Y-m-d');
+            ?>
+              <div class="calendar-day <?= $is_today ? 'today' : '' ?>">
+                <strong><?= $day_name ?> <?= $day_number ?></strong>
+                <?php if(isset($courses_by_date[$date])): ?>
+                  <?php foreach($courses_by_date[$date] as $course): ?>
+                    <div class="course-slot">
+                      <strong><?= htmlspecialchars($course['name']) ?></strong><br>
+                      <small><?= $course['course_time'] ?> - <?= htmlspecialchars($course['course']) ?></small><br>
+                      <small><?= htmlspecialchars($course['instructor']) ?></small>
+                    </div>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </div>
+            <?php endfor;
+          endif; ?>
         </div>
       </div>
     </div>
