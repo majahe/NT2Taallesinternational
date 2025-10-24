@@ -7,6 +7,19 @@ if (!isset($_SESSION['admin'])) {
 
 include '../includes/db_connect.php';
 
+// Check if required columns exist, if not add them
+$columns_check = $conn->query("SHOW COLUMNS FROM registrations LIKE 'course_date'");
+if ($columns_check->num_rows == 0) {
+    // Add missing columns
+    $alter_sql = "ALTER TABLE registrations 
+                  ADD COLUMN course_date DATE NULL,
+                  ADD COLUMN course_time TIME NULL,
+                  ADD COLUMN instructor VARCHAR(100) NULL,
+                  ADD COLUMN location VARCHAR(100) NULL,
+                  ADD COLUMN planning_notes TEXT NULL";
+    $conn->query($alter_sql);
+}
+
 // Handle course scheduling
 if (isset($_POST['schedule_course'])) {
   $registration_id = intval($_POST['registration_id']);
@@ -26,12 +39,16 @@ if (isset($_POST['schedule_course'])) {
           status = 'Scheduled'
           WHERE id = ?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param("sssssi", $course_date, $course_time, $instructor, $location, $notes, $registration_id);
-  $stmt->execute();
-  $stmt->close();
-  
-  header("Location: planning.php?success=1");
-  exit;
+  if ($stmt) {
+    $stmt->bind_param("sssssi", $course_date, $course_time, $instructor, $location, $notes, $registration_id);
+    $stmt->execute();
+    $stmt->close();
+    
+    header("Location: planning.php?success=1");
+    exit;
+  } else {
+    $error_message = "Database error: " . $conn->error;
+  }
 }
 
 // Get all planned registrations
@@ -230,12 +247,19 @@ $scheduled_courses = $conn->query("
         Course scheduled successfully!
       </div>
     <?php endif; ?>
+    
+    <?php if(isset($error_message)): ?>
+      <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
+        Error: <?= htmlspecialchars($error_message) ?>
+      </div>
+    <?php endif; ?>
 
     <div class="planning-grid">
       <!-- Planned Students Section -->
       <div class="planning-card">
-        <h2>📋 Students to Schedule (<?= $planned_registrations->num_rows ?>)</h2>
+        <h2>📋 Students to Schedule (<?= $planned_registrations ? $planned_registrations->num_rows : 0 ?>)</h2>
         
+        <?php if($planned_registrations && $planned_registrations->num_rows > 0): ?>
         <?php while($student = $planned_registrations->fetch_assoc()): ?>
         <div class="planned-student">
           <div class="student-info">
@@ -296,8 +320,7 @@ $scheduled_courses = $conn->query("
           </form>
         </div>
         <?php endwhile; ?>
-        
-        <?php if($planned_registrations->num_rows == 0): ?>
+        <?php else: ?>
           <p style="text-align: center; color: #666; padding: 20px;">
             No students with "Planned" status found.
           </p>
@@ -323,8 +346,10 @@ $scheduled_courses = $conn->query("
           $current_date = date('Y-m-d');
           $courses_by_date = [];
           
-          while($course = $scheduled_courses->fetch_assoc()) {
-            $courses_by_date[$course['course_date']][] = $course;
+          if($scheduled_courses) {
+            while($course = $scheduled_courses->fetch_assoc()) {
+              $courses_by_date[$course['course_date']][] = $course;
+            }
           }
           
           // Generate calendar days (simplified - shows next 7 days)
