@@ -27,7 +27,7 @@
   <!-- Contact Information Cards -->
   <section class="contact-info-section">
     <div class="container">
-      <h2 class="section-title">Contact Information</h2>
+      <h2 class="section-title">Contact Information.</h2>
       <div class="contact-cards">
         <div class="contact-card">
           <div class="contact-icon">📧</div>
