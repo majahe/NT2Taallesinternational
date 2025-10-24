@@ -55,47 +55,11 @@ if (isset($_POST['schedule_course'])) {
   }
 }
 
-// Handle rescheduling of already scheduled courses
-if (isset($_POST['reschedule_course'])) {
-  $registration_id = intval($_POST['registration_id']);
-  $course_date = $_POST['course_date'];
-  $course_time = $_POST['course_time'];
-  $instructor = $_POST['instructor'];
-  $location = $_POST['location'];
-  $notes = $_POST['notes'];
-  
-  $sql = "UPDATE registrations SET 
-          course_date = ?, 
-          course_time = ?, 
-          instructor = ?, 
-          location = ?, 
-          planning_notes = ?
-          WHERE id = ?";
-  $stmt = $conn->prepare($sql);
-  if ($stmt) {
-    $stmt->bind_param("sssssi", $course_date, $course_time, $instructor, $location, $notes, $registration_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    header("Location: planning.php?success=1&type=rescheduled");
-    exit;
-  } else {
-    $error_message = "Database error: " . $conn->error;
-  }
-}
-
 // Get all planned registrations
 $planned_registrations = $conn->query("
   SELECT * FROM registrations 
   WHERE status = 'Planned' 
   ORDER BY created_at ASC
-");
-
-// Get scheduled registrations for rescheduling
-$scheduled_registrations = $conn->query("
-  SELECT * FROM registrations 
-  WHERE status = 'Scheduled' 
-  ORDER BY course_date ASC
 ");
 
 // Get scheduled courses for calendar view
@@ -391,11 +355,7 @@ if ($view === 'month') {
   <div class="planning-container">
     <?php if(isset($_GET['success'])): ?>
       <div class="success-message">
-        <?php if(isset($_GET['type']) && $_GET['type'] === 'rescheduled'): ?>
-          Course rescheduled successfully!
-        <?php else: ?>
-          Course scheduled successfully!
-        <?php endif; ?>
+        Course scheduled successfully!
       </div>
     <?php endif; ?>
     
@@ -474,78 +434,6 @@ if ($view === 'month') {
         <?php else: ?>
           <p style="text-align: center; color: #666; padding: 20px;">
             No students with "Planned" status found.
-          </p>
-        <?php endif; ?>
-      </div>
-
-      <!-- Scheduled Students Section for Rescheduling -->
-      <div class="planning-card">
-        <h2>🔄 Reschedule Students (<?= $scheduled_registrations ? $scheduled_registrations->num_rows : 0 ?>)</h2>
-        
-        <?php if($scheduled_registrations && $scheduled_registrations->num_rows > 0): ?>
-        <?php while($student = $scheduled_registrations->fetch_assoc()): ?>
-        <div class="planned-student">
-          <div class="student-info">
-            <div>
-              <strong><?= htmlspecialchars($student['name']) ?></strong><br>
-              <small><?= htmlspecialchars($student['email']) ?></small>
-            </div>
-            <div>
-              <strong>Course:</strong> <?= htmlspecialchars($student['course']) ?><br>
-              <strong>Current Date:</strong> <?= htmlspecialchars($student['course_date']) ?><br>
-              <strong>Current Time:</strong> <?= htmlspecialchars($student['course_time']) ?>
-            </div>
-          </div>
-          
-          <form method="POST" class="schedule-form">
-            <input type="hidden" name="registration_id" value="<?= $student['id'] ?>">
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label>New Course Date</label>
-                <input type="date" name="course_date" value="<?= htmlspecialchars($student['course_date']) ?>" required>
-              </div>
-              <div class="form-group">
-                <label>New Course Time</label>
-                <input type="time" name="course_time" value="<?= htmlspecialchars($student['course_time']) ?>" required>
-              </div>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label>Instructor</label>
-                <select name="instructor" required>
-                  <option value="">Select Instructor</option>
-                  <option value="Dr. Maria van der Berg" <?= $student['instructor'] === 'Dr. Maria van der Berg' ? 'selected' : '' ?>>Dr. Maria van der Berg</option>
-                  <option value="Prof. Jan de Vries" <?= $student['instructor'] === 'Prof. Jan de Vries' ? 'selected' : '' ?>>Prof. Jan de Vries</option>
-                  <option value="Ms. Anna Schmidt" <?= $student['instructor'] === 'Ms. Anna Schmidt' ? 'selected' : '' ?>>Ms. Anna Schmidt</option>
-                  <option value="Mr. Peter Bakker" <?= $student['instructor'] === 'Mr. Peter Bakker' ? 'selected' : '' ?>>Mr. Peter Bakker</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Location</label>
-                <select name="location" required>
-                  <option value="">Select Location</option>
-                  <option value="Room A101" <?= $student['location'] === 'Room A101' ? 'selected' : '' ?>>Room A101</option>
-                  <option value="Room A102" <?= $student['location'] === 'Room A102' ? 'selected' : '' ?>>Room A102</option>
-                  <option value="Room B201" <?= $student['location'] === 'Room B201' ? 'selected' : '' ?>>Room B201</option>
-                  <option value="Online (Zoom)" <?= $student['location'] === 'Online (Zoom)' ? 'selected' : '' ?>>Online (Zoom)</option>
-                </select>
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label>Notes</label>
-              <textarea name="notes" rows="2" placeholder="Additional notes for this course..."><?= htmlspecialchars($student['planning_notes']) ?></textarea>
-            </div>
-            
-            <button type="submit" name="reschedule_course" class="btn">Update Schedule</button>
-          </form>
-        </div>
-        <?php endwhile; ?>
-        <?php else: ?>
-          <p style="text-align: center; color: #666; padding: 20px;">
-            No scheduled students found.
           </p>
         <?php endif; ?>
       </div>
