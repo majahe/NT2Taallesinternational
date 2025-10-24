@@ -1,4 +1,4 @@
-# How to Update GitHub with Your Changes
+# How to Update GitHub with Your Changes..
 
 ## 📝 Overview
 
@@ -118,15 +118,16 @@ Here's a complete example of updating GitHub:
 ```bash
 # 1. Check what's changed
 git status
-
 # 2. Add all changes
 git add .
-
 # 3. Commit with descriptive message
-git commit -m "Add documentation files and update project structure"
-
+git commit -m "Add / New / update files"
 # 4. Push to GitHub
 git push origin main
+
+
+
+
 ```
 
 ## 🔐 Authentication Issues
