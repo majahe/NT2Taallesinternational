@@ -32,6 +32,7 @@ $total = $conn->query("SELECT COUNT(*) AS total FROM registrations")->fetch_asso
 $new = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='New'")->fetch_assoc()['c'];
 $pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Pending'")->fetch_assoc()['c'];
 $planned = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Planned'")->fetch_assoc()['c'];
+$scheduled = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Scheduled'")->fetch_assoc()['c'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -115,6 +116,7 @@ $planned = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='P
   <div class="stat-card"><h2><?= $new ?></h2><p>New</p></div>
   <div class="stat-card"><h2><?= $pending ?></h2><p>Pending</p></div>
   <div class="stat-card"><h2><?= $planned ?></h2><p>Planned</p></div>
+  <div class="stat-card"><h2><?= $scheduled ?></h2><p>Scheduled</p></div>
 </section>
 
 <section class="filters">
@@ -124,6 +126,7 @@ $planned = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='P
     <button id="btn-New" class="btn filter-btn" onclick="filterRows('New')">New</button>
     <button id="btn-Pending" class="btn filter-btn" onclick="filterRows('Pending')">Pending</button>
     <button id="btn-Planned" class="btn filter-btn" onclick="filterRows('Planned')">Planned</button>
+    <button id="btn-Scheduled" class="btn filter-btn" onclick="filterRows('Scheduled')">Scheduled</button>
   </div>
 </section>
 
@@ -156,6 +159,9 @@ $planned = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='P
             <option <?= $row['status']=='New'?'selected':'' ?>>New</option>
             <option <?= $row['status']=='Pending'?'selected':'' ?>>Pending</option>
             <option <?= $row['status']=='Planned'?'selected':'' ?>>Planned</option>
+            <option <?= $row['status']=='Scheduled'?'selected':'' ?>>Scheduled</option>
+            <option <?= $row['status']=='Completed'?'selected':'' ?>>Completed</option>
+            <option <?= $row['status']=='Cancelled'?'selected':'' ?>>Cancelled</option>
           </select>
         </td>
         <td><?= $row['created_at'] ?></td>

@@ -7,6 +7,10 @@ if (!isset($_SESSION['admin'])) {
 
 include '../includes/db_connect.php';
 
+// First, update the status ENUM to include 'Scheduled'
+$alter_status_sql = "ALTER TABLE registrations MODIFY COLUMN status ENUM('New', 'Pending', 'Planned', 'Scheduled', 'Completed', 'Cancelled') DEFAULT 'New'";
+$conn->query($alter_status_sql);
+
 // Check if required columns exist, if not add them
 $columns_check = $conn->query("SHOW COLUMNS FROM registrations LIKE 'course_date'");
 if ($columns_check->num_rows == 0) {
