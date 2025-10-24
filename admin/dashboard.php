@@ -103,6 +103,7 @@ $planned = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='P
   <h1>📘 Admin Dashboard – Learn Dutch</h1>
   <div class="admin-controls">
     <span>Logged in as: <strong><?= $_SESSION['admin'] ?></strong></span>
+    <a href="planning.php" class="btn small">📅 Course Planning</a>
     <a href="change_password.php" class="btn small">🔐 Change Password</a>
     <a href="../index.php" class="btn small">← Website</a>
     <a href="logout.php" class="btn danger small">Logout</a>
