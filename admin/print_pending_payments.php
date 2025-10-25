@@ -57,6 +57,47 @@ $printed_date = date('Y-m-d H:i:s');
       color: #333;
     }
 
+    .action-header {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 30px;
+      justify-content: center;
+    }
+
+    .btn-action {
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-print-action {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-print-action:hover {
+      background: #059669;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-back-action {
+      background: #6b7280;
+      color: white;
+    }
+
+    .btn-back-action:hover {
+      background: #4b5563;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(107, 114, 128, 0.3);
+    }
+
     .print-header {
       text-align: center;
       margin-bottom: 30px;
@@ -188,6 +229,10 @@ $printed_date = date('Y-m-d H:i:s');
         padding: 0;
       }
 
+      .action-header {
+        display: none !important;
+      }
+
       .print-header {
         page-break-after: avoid;
       }
@@ -203,6 +248,11 @@ $printed_date = date('Y-m-d H:i:s');
   </style>
 </head>
 <body>
+
+<div class="action-header">
+  <button class="btn-action btn-print-action" onclick="window.print()">🖨️ Print</button>
+  <button class="btn-action btn-back-action" onclick="window.history.back()">← Go Back</button>
+</div>
 
 <div class="print-header">
   <h1><?= htmlspecialchars($title) ?></h1>
@@ -266,13 +316,6 @@ $printed_date = date('Y-m-d H:i:s');
   <p>This is a confidential document. Please handle with care.</p>
   <p>For more information, contact the administration.</p>
 </div>
-
-<script>
-  // Auto-print when page loads
-  window.addEventListener('load', function() {
-    window.print();
-  });
-</script>
 
 </body>
 </html>
