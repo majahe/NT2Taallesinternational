@@ -1,4 +1,4 @@
-# NT2 Taalles International Website.
+# NT2 Taalles International Website...
 
 A comprehensive PHP-based website for NT2 (Dutch as a Second Language) course registration and management system.
 
