@@ -459,8 +459,8 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
           <input type="date" id="startDate" name="start_date" required>
         </div>
         <div class="form-group">
-          <label>End Date *</label>
-          <input type="date" id="endDate" name="end_date" required>
+          <label>End Date</label>
+          <input type="date" id="endDate" name="end_date">
         </div>
       </div>
 
@@ -474,14 +474,20 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
           </select>
         </div>
         <div class="form-group">
-          <label>Amount Paid (€)</label>
-          <input type="number" id="amountPaid" name="amount_paid" step="0.01" value="0">
+          <label>Total Lessons</label>
+          <input type="number" id="totalLessons" name="total_lessons" min="0" value="0">
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Total Amount (€)</label>
-        <input type="number" id="totalAmount" name="total_amount" step="0.01" value="0">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Amount Paid (€)</label>
+          <input type="number" id="amountPaid" name="amount_paid" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>Total Amount (€)</label>
+          <input type="number" id="totalAmount" name="total_amount" step="0.01" value="0">
+        </div>
       </div>
 
       <div class="form-row">
@@ -503,17 +509,6 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
       <div class="form-group">
         <label>Emergency Contact</label>
         <input type="text" id="emergencyContact" name="emergency_contact">
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Total Lessons</label>
-          <input type="number" id="totalLessons" name="total_lessons" min="0" value="0">
-        </div>
-        <div class="form-group">
-          <label>&nbsp;</label>
-          <div style="height: 48px;"></div>
-        </div>
       </div>
 
       <div class="form-group">
