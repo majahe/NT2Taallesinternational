@@ -19,6 +19,8 @@ A comprehensive PHP-based website for NT2 (Dutch as a Second Language) course re
 - **Contact Form**: Secure form processing with server-side validation
 - **Course Registration**: Student registration system for Dutch language courses
 - **Admin Dashboard**: Management interface for viewing and managing registrations
+- **Registered Students Management**: Complete student lifecycle management with start/end dates, payment tracking, and personal information
+- **Payment Tracking**: Monitor student payments with status indicators
 - **Email Notifications**: Automated email system using PHPMailer
 - **Database Integration**: MySQL database with prepared statements
 - **Multi-language Support**: English to Dutch and Russian to Dutch course pages
@@ -41,6 +43,8 @@ NT2TaallesInternational/
 ├── admin/                              # Admin panel
 │   ├── index.php                      # Admin login page
 │   ├── dashboard.php                  # Main admin interface
+│   ├── registered_students.php        # Student lifecycle management
+│   ├── planning.php                   # Course planning
 │   ├── change_password.php            # Password management
 │   ├── logout.php                     # Admin logout
 │   └── fix_password.php               # Password recovery
@@ -171,84 +175,4 @@ The application uses environment variables stored in `config/.env` for sensitive
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `DB_HOST` | Database host | `localhost` |
-| `DB_USER` | Database username | `root` |
-| `DB_PASS` | Database password | `your_password` |
-| `DB_NAME` | Database name | `nt2_db` |
-| `SMTP_HOST` | SMTP server | `smtp.gmail.com` |
-| `SMTP_USERNAME` | Email username | `your_email@gmail.com` |
-| `SMTP_PASSWORD` | Email password | `your_app_password` |
-| `ADMIN_EMAIL` | Admin contact email | `admin@yourdomain.com` |
-| `WEBSITE_URL` | Website URL | `https://yourdomain.com` |
-
-### Configuration Loading
-
-The main configuration is loaded through `includes/config.php`, which reads from the `.env` file:
-
-```php
-// Example configuration loading
-require_once 'config.php';
-$db = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
-```
-
-## 🔒 Security
-
-### Security Features
-
-- **Input Validation**: All form inputs are sanitized and validated
-- **Prepared Statements**: Database queries use prepared statements to prevent SQL injection
-- **Environment Variables**: Sensitive data stored in `.env` file (not in version control)
-- **Admin Authentication**: Admin panel requires secure login
-- **CSRF Protection**: Form submissions include security tokens
-
-### Security Best Practices
-
-1. **Never commit `.env` file to version control**
-2. **Use strong passwords for database and admin accounts**
-3. **Keep PHP and MySQL updated**
-4. **Regular security audits of form inputs**
-5. **Monitor admin access logs**
-
-## 👨‍💼 Admin Panel
-
-### Access
-
-- Navigate to `/admin/` to access the admin panel
-- Default login credentials should be set during initial setup
-- Change default password immediately after first login
-
-### Features
-
-- **Dashboard**: Overview of registrations and system status
-- **Registration Management**: View and manage student registrations
-- **Password Management**: Change admin password
-- **System Logs**: Monitor system activity
-
-### Admin Functions
-
-- View all course registrations
-- Export registration data
-- Manage system settings
-- Monitor email notifications
-
-## 📞 Support
-
-### Technical Support
-
-For technical support or questions about the website:
-
-- **Email**: Contact the development team
-- **Documentation**: Refer to this README and inline code comments
-- **Issues**: Report bugs or feature requests through the development team
-
-### Development
-
-- **Code Structure**: Follow PSR-4 autoloading standards
-- **Database**: Use prepared statements for all queries
-- **Security**: Validate all user inputs
-- **Testing**: Test all forms and admin functions before deployment
-
----
-
-**Version**: 2.0  
-**Last Updated**: 2024  
-**License**: Private - NT2 Taalles International# NT2Taallesinternational
+| `DB_USER` | Database username | `root`

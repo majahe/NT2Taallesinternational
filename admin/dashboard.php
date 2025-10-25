@@ -33,6 +33,7 @@ $new = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='New'"
 $pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Pending'")->fetch_assoc()['c'];
 $planned = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Planned'")->fetch_assoc()['c'];
 $scheduled = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Scheduled'")->fetch_assoc()['c'];
+$registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Registered'")->fetch_assoc()['c'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -117,6 +118,7 @@ $scheduled = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status=
   <div class="stat-card"><h2><?= $pending ?></h2><p>Pending</p></div>
   <div class="stat-card"><h2><?= $planned ?></h2><p>Planned</p></div>
   <div class="stat-card"><h2><?= $scheduled ?></h2><p>Scheduled</p></div>
+  <div class="stat-card"><h2><?= $registered ?></h2><p>Registered</p></div>
 </section>
 
 <section class="filters">
@@ -127,6 +129,7 @@ $scheduled = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status=
     <button id="btn-Pending" class="btn filter-btn" onclick="filterRows('Pending')">Pending</button>
     <button id="btn-Planned" class="btn filter-btn" onclick="filterRows('Planned')">Planned</button>
     <button id="btn-Scheduled" class="btn filter-btn" onclick="filterRows('Scheduled')">Scheduled</button>
+    <a href="registered_students.php" class="btn small">Manage Registered Students</a>
   </div>
 </section>
 
@@ -162,6 +165,7 @@ $scheduled = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status=
             <option <?= $row['status']=='Scheduled'?'selected':'' ?>>Scheduled</option>
             <option <?= $row['status']=='Completed'?'selected':'' ?>>Completed</option>
             <option <?= $row['status']=='Cancelled'?'selected':'' ?>>Cancelled</option>
+            <option <?= $row['status']=='Registered'?'selected':'' ?>>Registered</option>
           </select>
         </td>
         <td><?= $row['created_at'] ?></td>
