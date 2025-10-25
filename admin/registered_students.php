@@ -36,6 +36,7 @@ if (isset($_POST['update_student'])) {
     $emergency_contact = $_POST['emergency_contact'] ?? null;
     $notes = $_POST['notes'] ?? null;
     $total_lessons = intval($_POST['total_lessons'] ?? 0);
+    $price_per_lesson = floatval($_POST['price_per_lesson'] ?? 0);
 
     $sql = "UPDATE registrations SET 
             start_date = ?, 
@@ -47,12 +48,13 @@ if (isset($_POST['update_student'])) {
             address = ?,
             emergency_contact = ?,
             notes = ?,
-            total_lessons = ?
+            total_lessons = ?,
+            price_per_lesson = ?
             WHERE id = ?";
     
     $stmt = $conn->prepare($sql);
     if ($stmt) {
-        $stmt->bind_param("sssddssssii", $start_date, $end_date, $payment_status, $amount_paid, $total_amount, $phone, $address, $emergency_contact, $notes, $total_lessons, $id);
+        $stmt->bind_param("sssddsssidd", $start_date, $end_date, $payment_status, $amount_paid, $total_amount, $phone, $address, $emergency_contact, $notes, $total_lessons, $price_per_lesson, $id);
         $stmt->execute();
         $stmt->close();
         $success = "Student information updated successfully!";
@@ -321,7 +323,7 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     }
   </style>
   <script>
-    function openEditModal(id, name, email, course, startDate, endDate, paymentStatus, amountPaid, totalAmount, phone, address, emergency, notes, lessons) {
+    function openEditModal(id, name, email, course, startDate, endDate, paymentStatus, amountPaid, totalAmount, phone, address, emergency, notes, lessons, pricePerLesson) {
       document.getElementById('editModal').classList.add('show');
       document.getElementById('studentId').value = id;
       document.getElementById('studentName').textContent = name + ' (' + email + ')';
@@ -336,6 +338,14 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
       document.getElementById('emergencyContact').value = emergency || '';
       document.getElementById('studentNotes').value = notes || '';
       document.getElementById('totalLessons').value = lessons || '0';
+      document.getElementById('pricePerLesson').value = pricePerLesson || '0';
+    }
+
+    function calculateTotalAmount() {
+      const lessons = parseFloat(document.getElementById('totalLessons').value) || 0;
+      const pricePerLesson = parseFloat(document.getElementById('pricePerLesson').value) || 0;
+      const totalAmount = lessons * pricePerLesson;
+      document.getElementById('totalAmount').value = totalAmount.toFixed(2);
     }
 
     function closeEditModal() {
@@ -422,7 +432,8 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     '<?= htmlspecialchars(addslashes($row['address'] ?? '')) ?>',
     '<?= htmlspecialchars(addslashes($row['emergency_contact'] ?? '')) ?>',
     `<?= htmlspecialchars($row['notes'] ?? '') ?>`,
-    '<?= $row['total_lessons'] ?? 0 ?>'
+    '<?= $row['total_lessons'] ?? 0 ?>',
+    '<?= $row['price_per_lesson'] ?? 0 ?>'
   ); return false;" style="cursor: pointer;">
     <h3>
       <?= htmlspecialchars($row['name']) ?>
@@ -475,19 +486,24 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
         </div>
         <div class="form-group">
           <label>Total Lessons</label>
-          <input type="number" id="totalLessons" name="total_lessons" min="0" value="0">
+          <input type="number" id="totalLessons" name="total_lessons" min="0" value="0" onchange="calculateTotalAmount()">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
+          <label>Price per Lesson (€)</label>
+          <input type="number" id="pricePerLesson" name="price_per_lesson" step="0.01" value="0" onchange="calculateTotalAmount()">
+        </div>
+        <div class="form-group">
           <label>Amount Paid (€)</label>
           <input type="number" id="amountPaid" name="amount_paid" step="0.01" value="0">
         </div>
-        <div class="form-group">
-          <label>Total Amount (€)</label>
-          <input type="number" id="totalAmount" name="total_amount" step="0.01" value="0">
-        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Total Amount (€)</label>
+        <input type="number" id="totalAmount" name="total_amount" step="0.01" value="0" readonly>
       </div>
 
       <div class="form-row">

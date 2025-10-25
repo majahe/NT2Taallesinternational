@@ -32,7 +32,8 @@ $columns_to_add = array(
     'address' => "TEXT NULL",
     'emergency_contact' => "VARCHAR(100) NULL",
     'notes' => "TEXT NULL",
-    'total_lessons' => "INT DEFAULT 0"
+    'total_lessons' => "INT DEFAULT 0",
+    'price_per_lesson' => "DECIMAL(10,2) DEFAULT 0"
 );
 
 foreach ($columns_to_add as $column => $type) {
