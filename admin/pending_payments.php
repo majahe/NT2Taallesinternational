@@ -596,11 +596,11 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
     }
 
     function openPrintOptionsModal() {
-      document.getElementById('printOptionsModal').style.display = 'flex';
+      document.getElementById('printOptionsModal').classList.add('show');
     }
 
     function closePrintOptionsModal() {
-      document.getElementById('printOptionsModal').style.display = 'none';
+      document.getElementById('printOptionsModal').classList.remove('show');
     }
   </script>
 </head>
@@ -714,7 +714,7 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
 </div>
 
 <!-- Print Options Modal -->
-<div id="printOptionsModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closePrintOptionsModal()">
+<div id="printOptionsModal" class="modal-overlay" onclick="if(event.target === this) closePrintOptionsModal()">
   <div class="modal-content">
     <h2>Select Print Options</h2>
     <form method="POST" action="print_pending_payments.php">
