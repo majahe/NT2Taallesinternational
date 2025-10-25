@@ -486,14 +486,14 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
         </div>
         <div class="form-group">
           <label>Total Lessons</label>
-          <input type="number" id="totalLessons" name="total_lessons" min="0" value="0" onchange="calculateTotalAmount()">
+          <input type="number" id="totalLessons" name="total_lessons" min="0" value="0" oninput="calculateTotalAmount()">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Price per Lesson (€)</label>
-          <input type="number" id="pricePerLesson" name="price_per_lesson" step="0.01" value="0" onchange="calculateTotalAmount()">
+          <input type="number" id="pricePerLesson" name="price_per_lesson" step="0.01" value="0" oninput="calculateTotalAmount()">
         </div>
         <div class="form-group">
           <label>Amount Paid (€)</label>
