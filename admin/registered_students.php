@@ -19,8 +19,22 @@ if ($check_columns->num_rows == 0) {
                   ADD COLUMN phone VARCHAR(20) NULL,
                   ADD COLUMN address TEXT NULL,
                   ADD COLUMN emergency_contact VARCHAR(100) NULL,
-                  ADD COLUMN notes TEXT NULL";
+                  ADD COLUMN notes TEXT NULL,
+                  ADD COLUMN total_lessons INT DEFAULT 0,
+                  ADD COLUMN price_per_lesson DECIMAL(10,2) DEFAULT 0";
     $conn->query($alter_sql);
+}
+
+// Check for price_per_lesson column specifically
+$check_price = $conn->query("SHOW COLUMNS FROM registrations LIKE 'price_per_lesson'");
+if ($check_price->num_rows == 0) {
+    $conn->query("ALTER TABLE registrations ADD COLUMN price_per_lesson DECIMAL(10,2) DEFAULT 0");
+}
+
+// Check for total_lessons column specifically
+$check_lessons = $conn->query("SHOW COLUMNS FROM registrations LIKE 'total_lessons'");
+if ($check_lessons->num_rows == 0) {
+    $conn->query("ALTER TABLE registrations ADD COLUMN total_lessons INT DEFAULT 0");
 }
 
 // Update registered student
