@@ -80,7 +80,6 @@ $result = $conn->query("SELECT * FROM registrations WHERE status='Registered' OR
 $total_registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Registered'")->fetch_assoc()['c'];
 $total_paid = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Registered' AND payment_status='Paid'")->fetch_assoc()['c'];
 $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Registered' AND payment_status='Pending'")->fetch_assoc()['c'];
-$total_revenue = $conn->query("SELECT SUM(amount_paid) AS c FROM registrations WHERE status='Registered'")->fetch_assoc()['c'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -386,10 +385,6 @@ $total_revenue = $conn->query("SELECT SUM(amount_paid) AS c FROM registrations W
     <h3><?= $total_pending ?></h3>
     <p>Pending Payment</p>
   </div>
-  <div class="stat-card">
-    <h3>€<?= number_format($total_revenue, 2) ?></h3>
-    <p>Total Revenue</p>
-  </div>
 </div>
 
 <div class="filters">
@@ -409,7 +404,21 @@ $total_revenue = $conn->query("SELECT SUM(amount_paid) AS c FROM registrations W
       $payment_class = 'partial';
     }
   ?>
-  <div class="student-card" data-payment="<?= $row['payment_status'] ?? 'Pending' ?>">
+  <div class="student-card" data-payment="<?= $row['payment_status'] ?? 'Pending' ?>" onclick="openEditModal(
+    <?= $row['id'] ?>,
+    '<?= htmlspecialchars(addslashes($row['name'])) ?>',
+    '<?= htmlspecialchars(addslashes($row['email'])) ?>',
+    '<?= htmlspecialchars(addslashes($row['course'])) ?>',
+    '<?= $row['start_date'] ?>',
+    '<?= $row['end_date'] ?>',
+    '<?= htmlspecialchars($row['payment_status'] ?? 'Pending') ?>',
+    '<?= $row['amount_paid'] ?? 0 ?>',
+    '<?= $row['total_amount'] ?? 0 ?>',
+    '<?= htmlspecialchars(addslashes($row['phone'] ?? '')) ?>',
+    '<?= htmlspecialchars(addslashes($row['address'] ?? '')) ?>',
+    '<?= htmlspecialchars(addslashes($row['emergency_contact'] ?? '')) ?>',
+    `<?= htmlspecialchars($row['notes'] ?? '') ?>`
+  ); return false;" style="cursor: pointer;">
     <h3>
       <?= htmlspecialchars($row['name']) ?>
     </h3>
@@ -422,22 +431,7 @@ $total_revenue = $conn->query("SELECT SUM(amount_paid) AS c FROM registrations W
     <div class="student-info"><strong>Payment:</strong> €<?= number_format($row['amount_paid'] ?? 0, 2) ?> / €<?= number_format($row['total_amount'] ?? 0, 2) ?></div>
     <span class="payment-status <?= $payment_class ?>"><?= htmlspecialchars($row['payment_status'] ?? 'Pending') ?></span>
     
-    <div class="card-actions">
-      <button class="btn-small" onclick="openEditModal(
-        <?= $row['id'] ?>,
-        '<?= htmlspecialchars(addslashes($row['name'])) ?>',
-        '<?= htmlspecialchars(addslashes($row['email'])) ?>',
-        '<?= htmlspecialchars(addslashes($row['course'])) ?>',
-        '<?= $row['start_date'] ?>',
-        '<?= $row['end_date'] ?>',
-        '<?= htmlspecialchars($row['payment_status'] ?? 'Pending') ?>',
-        '<?= $row['amount_paid'] ?? 0 ?>',
-        '<?= $row['total_amount'] ?? 0 ?>',
-        '<?= htmlspecialchars(addslashes($row['phone'] ?? '')) ?>',
-        '<?= htmlspecialchars(addslashes($row['address'] ?? '')) ?>',
-        '<?= htmlspecialchars(addslashes($row['emergency_contact'] ?? '')) ?>',
-        `<?= htmlspecialchars($row['notes'] ?? '') ?>`
-      )">Edit</button>
+    <div class="card-actions" onclick="event.stopPropagation();">
       <a href="?delete=<?= $row['id'] ?>" class="btn-small btn-danger-small" onclick="return confirm('Delete this student record?')">Delete</a>
     </div>
   </div>
