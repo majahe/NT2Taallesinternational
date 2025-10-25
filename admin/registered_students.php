@@ -35,6 +35,7 @@ if (isset($_POST['update_student'])) {
     $address = $_POST['address'] ?? null;
     $emergency_contact = $_POST['emergency_contact'] ?? null;
     $notes = $_POST['notes'] ?? null;
+    $total_lessons = intval($_POST['total_lessons'] ?? 0);
 
     $sql = "UPDATE registrations SET 
             start_date = ?, 
@@ -45,12 +46,13 @@ if (isset($_POST['update_student'])) {
             phone = ?,
             address = ?,
             emergency_contact = ?,
-            notes = ?
+            notes = ?,
+            total_lessons = ?
             WHERE id = ?";
     
     $stmt = $conn->prepare($sql);
     if ($stmt) {
-        $stmt->bind_param("sssddssssi", $start_date, $end_date, $payment_status, $amount_paid, $total_amount, $phone, $address, $emergency_contact, $notes, $id);
+        $stmt->bind_param("sssddsssii", $start_date, $end_date, $payment_status, $amount_paid, $total_amount, $phone, $address, $emergency_contact, $notes, $total_lessons, $id);
         $stmt->execute();
         $stmt->close();
         $success = "Student information updated successfully!";
@@ -319,7 +321,7 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     }
   </style>
   <script>
-    function openEditModal(id, name, email, course, startDate, endDate, paymentStatus, amountPaid, totalAmount, phone, address, emergency, notes) {
+    function openEditModal(id, name, email, course, startDate, endDate, paymentStatus, amountPaid, totalAmount, phone, address, emergency, notes, lessons) {
       document.getElementById('editModal').classList.add('show');
       document.getElementById('studentId').value = id;
       document.getElementById('studentName').textContent = name + ' (' + email + ')';
@@ -333,6 +335,7 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
       document.getElementById('address').value = address || '';
       document.getElementById('emergencyContact').value = emergency || '';
       document.getElementById('studentNotes').value = notes || '';
+      document.getElementById('totalLessons').value = lessons || '0';
     }
 
     function closeEditModal() {
@@ -418,7 +421,8 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     '<?= htmlspecialchars(addslashes($row['phone'] ?? '')) ?>',
     '<?= htmlspecialchars(addslashes($row['address'] ?? '')) ?>',
     '<?= htmlspecialchars(addslashes($row['emergency_contact'] ?? '')) ?>',
-    `<?= htmlspecialchars($row['notes'] ?? '') ?>`
+    `<?= htmlspecialchars($row['notes'] ?? '') ?>`,
+    '<?= $row['total_lessons'] ?? 0 ?>'
   ); return false;" style="cursor: pointer;">
     <h3>
       <?= htmlspecialchars($row['name']) ?>
@@ -426,6 +430,7 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     <div class="student-info"><strong>Email:</strong> <?= htmlspecialchars($row['email']) ?></div>
     <div class="student-info"><strong>Course:</strong> <?= htmlspecialchars($row['course']) ?></div>
     <div class="student-info"><strong>Phone:</strong> <?= htmlspecialchars($row['phone'] ?? 'N/A') ?></div>
+    <div class="student-info"><strong>Lessons:</strong> <?= intval($row['total_lessons'] ?? 0) ?> 📚</div>
     <div class="student-info"><strong>Start Date:</strong> <?= $row['start_date'] ? date('d-m-Y', strtotime($row['start_date'])) : 'Not set' ?></div>
     <div class="student-info"><strong>End Date:</strong> <?= $row['end_date'] ? date('d-m-Y', strtotime($row['end_date'])) : 'Not set' ?></div>
     <div class="student-info"><strong>Duration:</strong> <?= htmlspecialchars($row['preferred_time'] ?? 'N/A') ?></div>
@@ -498,6 +503,17 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
       <div class="form-group">
         <label>Emergency Contact</label>
         <input type="text" id="emergencyContact" name="emergency_contact">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Total Lessons</label>
+          <input type="number" id="totalLessons" name="total_lessons" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <div style="height: 48px;"></div>
+        </div>
       </div>
 
       <div class="form-group">

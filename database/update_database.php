@@ -31,7 +31,8 @@ $columns_to_add = array(
     'phone' => "VARCHAR(20) NULL",
     'address' => "TEXT NULL",
     'emergency_contact' => "VARCHAR(100) NULL",
-    'notes' => "TEXT NULL"
+    'notes' => "TEXT NULL",
+    'total_lessons' => "INT DEFAULT 0"
 );
 
 foreach ($columns_to_add as $column => $type) {

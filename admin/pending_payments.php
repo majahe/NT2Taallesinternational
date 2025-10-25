@@ -185,7 +185,7 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
 
     .payment-item {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr auto;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr auto;
       gap: 1.5rem;
       padding: 1.5rem 2rem;
       border-bottom: 1px solid #e5e7eb;
@@ -275,7 +275,7 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
 
     .header-row {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr auto;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr auto;
       gap: 1.5rem;
       padding: 1.5rem 2rem;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -549,6 +549,7 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
           <div class="payment-email"><?= htmlspecialchars($row['email']) ?></div>
         </div>
         <div class="payment-course"><?= htmlspecialchars($row['course']) ?></div>
+        <div class="payment-amount" style="color: #667eea; font-weight: 600;">📚 <?= intval($row['total_lessons'] ?? 0) ?></div>
         <div class="payment-amount">€<?= number_format($row['total_amount'] ?? 0, 2) ?></div>
         <div class="payment-amount" style="color: #667eea;">€<?= number_format($row['amount_paid'] ?? 0, 2) ?></div>
         <div class="payment-amount" style="color: #ef4444;">€<?= number_format(($row['total_amount'] - $row['amount_paid']) ?? 0, 2) ?></div>
