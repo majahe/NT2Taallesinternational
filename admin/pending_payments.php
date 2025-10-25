@@ -437,6 +437,99 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
         display: block;
       }
     }
+
+    .print-options {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .print-option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .print-option input[type="radio"] {
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+    }
+
+    .print-option label {
+      cursor: pointer;
+      flex: 1;
+      margin: 0;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .btn-print {
+      background: #10b981;
+      color: white;
+      padding: 0.7rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .btn-print:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 100%;
+      }
+
+      .header,
+      .search-bar,
+      .header-actions,
+      .btn-back,
+      .btn-print,
+      .empty-state {
+        display: none !important;
+      }
+
+      .stats-grid {
+        margin-bottom: 1rem;
+      }
+
+      .stat-box {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .payments-list {
+        box-shadow: none;
+        border: 1px solid #ccc;
+      }
+
+      .payment-item {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .payment-item:hover {
+        background: white !important;
+      }
+
+      .header-row {
+        background: #667eea !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: white !important;
+      }
+    }
   </style>
   <script>
     let currentPaymentId = null;
@@ -501,6 +594,14 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
         }
       });
     }
+
+    function openPrintOptionsModal() {
+      document.getElementById('printOptionsModal').style.display = 'flex';
+    }
+
+    function closePrintOptionsModal() {
+      document.getElementById('printOptionsModal').style.display = 'none';
+    }
   </script>
 </head>
 <body>
@@ -510,6 +611,7 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
     <h1>💳 Pending Payments</h1>
     <div class="header-actions">
       <a href="registered_students.php" class="btn-back">← Back to Students</a>
+      <button class="btn-print" onclick="openPrintOptionsModal()">Print</button>
     </div>
   </div>
 
@@ -608,6 +710,33 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
       <button class="btn-modal btn-primary-modal" onclick="submitPaymentFull()">Mark as Paid</button>
       <button class="btn-modal secondary action-btn" onclick="submitPaymentPartial()" style="border: none; padding: 0.8rem 1.5rem;">Record Partial</button>
     </div>
+  </div>
+</div>
+
+<!-- Print Options Modal -->
+<div id="printOptionsModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closePrintOptionsModal()">
+  <div class="modal-content">
+    <h2>Select Print Options</h2>
+    <form method="POST" action="print_pending_payments.php">
+      <div class="print-options">
+        <div class="print-option">
+          <input type="radio" id="printAll" name="print_type" value="All" checked>
+          <label for="printAll">All Pending and Partial Payments</label>
+        </div>
+        <div class="print-option">
+          <input type="radio" id="printPending" name="print_type" value="Pending">
+          <label for="printPending">Only Pending Payments</label>
+        </div>
+        <div class="print-option">
+          <input type="radio" id="printPartial" name="print_type" value="Partial">
+          <label for="printPartial">Only Partial Payments</label>
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button type="button" class="btn-modal btn-cancel-modal" onclick="closePrintOptionsModal()">Cancel</button>
+        <button type="submit" class="btn-modal btn-primary-modal">Print</button>
+      </div>
+    </form>
   </div>
 </div>
 
