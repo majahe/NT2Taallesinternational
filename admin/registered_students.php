@@ -68,7 +68,7 @@ if (isset($_POST['update_student'])) {
     
     $stmt = $conn->prepare($sql);
     if ($stmt) {
-        $stmt->bind_param("sssddssssiddi", $start_date, $end_date, $payment_status, $amount_paid, $total_amount, $phone, $address, $emergency_contact, $notes, $total_lessons, $price_per_lesson, $id);
+        $stmt->bind_param("sssddssssidi", $start_date, $end_date, $payment_status, $amount_paid, $total_amount, $phone, $address, $emergency_contact, $notes, $total_lessons, $price_per_lesson, $id);
         $stmt->execute();
         $stmt->close();
         $success = "Student information updated successfully!";
