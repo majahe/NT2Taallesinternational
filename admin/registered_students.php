@@ -395,6 +395,7 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     <option value="Pending">Pending</option>
     <option value="Partial">Partial</option>
   </select>
+  <a href="pending_payments.php" class="btn small" style="background: #ef4444; color: white;">💳 View Pending Payments</a>
 </div>
 
 <div class="student-grid">

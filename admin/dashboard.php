@@ -98,6 +98,31 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
     });
   }
   </script>
+  <style>
+    .stat-card {
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .stat-card.clickable {
+      position: relative;
+    }
+    .stat-card.clickable::after {
+      content: '→';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.5rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .stat-card.clickable:hover::after {
+      opacity: 1;
+    }
+  </style>
 </head>
 <body class="dashboard-body">
 
@@ -118,7 +143,7 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
   <div class="stat-card"><h2><?= $pending ?></h2><p>Pending</p></div>
   <div class="stat-card"><h2><?= $planned ?></h2><p>Planned</p></div>
   <div class="stat-card"><h2><?= $scheduled ?></h2><p>Scheduled</p></div>
-  <div class="stat-card"><h2><?= $registered ?></h2><p>Registered</p></div>
+  <div class="stat-card clickable" onclick="window.location.href='registered_students.php'" style="cursor: pointer;"><h2><?= $registered ?></h2><p>Registered</p></div>
 </section>
 
 <section class="filters">
