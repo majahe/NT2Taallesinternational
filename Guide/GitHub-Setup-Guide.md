@@ -1,4 +1,4 @@
-# Step-by-Step Guide to Put Your Site on GitHub
+# Step-by-Step Guide to Put Your Site on GitHub..
 
 ## 🎯 Overview
 
