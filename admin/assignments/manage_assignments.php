@@ -47,6 +47,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_assignment']))
     $stmt->execute();
     $stmt->close();
     
+    // Update questions
+    if (isset($_POST['questions']) && is_array($_POST['questions'])) {
+        // First, delete existing questions
+        $stmt = $conn->prepare("DELETE FROM assignment_questions WHERE assignment_id = ?");
+        $stmt->bind_param("i", $assignment_id);
+        $stmt->execute();
+        $stmt->close();
+        
+        // Then add updated questions
+        foreach ($_POST['questions'] as $qdata) {
+            $question_text = $qdata['text'] ?? '';
+            $question_type = $qdata['type'] ?? 'multiple_choice';
+            $correct_answer = $qdata['correct'] ?? '';
+            $options = isset($qdata['options']) ? json_encode($qdata['options']) : null;
+            $qpoints = intval($qdata['points'] ?? 1);
+            $order_index = intval($qdata['order'] ?? 0);
+            
+            $stmt = $conn->prepare("INSERT INTO assignment_questions (assignment_id, question_text, question_type, correct_answer, options, points, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("issssii", $assignment_id, $question_text, $question_type, $correct_answer, $options, $qpoints, $order_index);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+    
     header("Location: manage_assignments.php?lesson_id=" . $lesson_id . "&success=Assignment updated");
     exit;
 }
@@ -92,6 +116,25 @@ $stmt->bind_param("i", $lesson_id);
 $stmt->execute();
 $assignments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Get questions for each assignment (for editing)
+$assignment_questions = [];
+foreach ($assignments as $assignment) {
+    $stmt = $conn->prepare("SELECT * FROM assignment_questions WHERE assignment_id = ? ORDER BY order_index");
+    $stmt->bind_param("i", $assignment['id']);
+    $stmt->execute();
+    $questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    
+    // Decode JSON options for each question
+    foreach ($questions as &$question) {
+        if ($question['options']) {
+            $question['options'] = json_decode($question['options'], true);
+        }
+    }
+    
+    $assignment_questions[$assignment['id']] = $questions;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -378,6 +421,12 @@ $stmt->close();
                     </label>
                 </div>
                 
+                <div id="editQuestionsContainer">
+                    <h3>📝 Questions</h3>
+                    <div id="editQuestionsList"></div>
+                    <button type="button" onclick="addEditQuestion()" class="btn btn-small" style="background-color: #48bb78; color: white;">+ Add Question</button>
+                </div>
+                
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button type="submit" name="update_assignment" class="btn btn-primary">💾 Update Assignment</button>
                     <button type="button" onclick="closeEditModal()" class="btn">❌ Cancel</button>
@@ -468,6 +517,23 @@ $stmt->close();
             });
         });
         
+        // Handle edit form submission
+        document.querySelector('#editModal form').addEventListener('submit', function(e) {
+            // Convert options text to JSON array for edit form
+            const optionsTexts = document.querySelectorAll('#editModal [name$="[options_text]"]');
+            optionsTexts.forEach(function(el) {
+                const qid = el.name.match(/\[(\d+)\]/)[1];
+                const options = el.value.split('\n').filter(o => o.trim());
+                
+                // Create hidden input with JSON options
+                const jsonInput = document.createElement('input');
+                jsonInput.type = 'hidden';
+                jsonInput.name = `questions[${qid}][options]`;
+                jsonInput.value = JSON.stringify(options);
+                el.parentNode.appendChild(jsonInput);
+            });
+        });
+        
         function openCreateModal() {
             document.getElementById('createModal').classList.add('show');
         }
@@ -512,11 +578,114 @@ $stmt->close();
             document.getElementById('edit_points').value = points;
             document.getElementById('edit_is_required').checked = isRequired;
             
+            // Load existing questions
+            loadEditQuestions(assignmentId);
+            
             document.getElementById('editModal').classList.add('show');
         }
         
         function closeEditModal() {
             document.getElementById('editModal').classList.remove('show');
+            // Clear edit questions
+            document.getElementById('editQuestionsList').innerHTML = '';
+            editQuestionCount = 0;
+        }
+        
+        let editQuestionCount = 0;
+        
+        function loadEditQuestions(assignmentId) {
+            // Get questions from PHP data
+            const questions = <?= json_encode($assignment_questions) ?>;
+            const assignmentQuestions = questions[assignmentId] || [];
+            
+            // Clear existing questions
+            document.getElementById('editQuestionsList').innerHTML = '';
+            editQuestionCount = 0;
+            
+            // Add each existing question
+            assignmentQuestions.forEach(question => {
+                addEditQuestion(question);
+            });
+        }
+        
+        function addEditQuestion(existingQuestion = null) {
+            editQuestionCount++;
+            const qid = editQuestionCount;
+            
+            let questionText = '';
+            let questionType = 'multiple_choice';
+            let correctAnswer = '';
+            let optionsText = '';
+            let points = 1;
+            
+            if (existingQuestion) {
+                questionText = existingQuestion.question_text || '';
+                questionType = existingQuestion.question_type || 'multiple_choice';
+                correctAnswer = existingQuestion.correct_answer || '';
+                points = existingQuestion.points || 1;
+                
+                if (existingQuestion.options && Array.isArray(existingQuestion.options)) {
+                    optionsText = existingQuestion.options.join('\n');
+                }
+            }
+            
+            const html = `
+                <div class="question-form">
+                    <h4>📝 Question ${qid}</h4>
+                    <div class="form-group">
+                        <label>Question Text *</label>
+                        <textarea name="questions[${qid}][text]" required placeholder="Enter your question here...">${questionText}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Question Type</label>
+                        <select name="questions[${qid}][type]" onchange="updateEditQuestionType(${qid}, this.value)">
+                            <option value="multiple_choice" ${questionType === 'multiple_choice' ? 'selected' : ''}>📋 Multiple Choice</option>
+                            <option value="fill_in" ${questionType === 'fill_in' ? 'selected' : ''}>✏️ Fill in the Blank</option>
+                            <option value="essay" ${questionType === 'essay' ? 'selected' : ''}>📝 Essay</option>
+                            <option value="file_upload" ${questionType === 'file_upload' ? 'selected' : ''}>📎 File Upload</option>
+                        </select>
+                    </div>
+                    <div id="edit-question-${qid}-options"></div>
+                    <div class="form-group">
+                        <label>Points</label>
+                        <input type="number" name="questions[${qid}][points]" value="${points}" min="1">
+                    </div>
+                    <input type="hidden" name="questions[${qid}][order]" value="${qid}">
+                    <button type="button" onclick="removeEditQuestion(${qid})" class="btn btn-small btn-danger" style="margin-top: 0.5rem;">🗑️ Remove Question</button>
+                </div>
+            `;
+            document.getElementById('editQuestionsList').insertAdjacentHTML('beforeend', html);
+            updateEditQuestionType(qid, questionType, correctAnswer, optionsText);
+        }
+        
+        function removeEditQuestion(qid) {
+            const questionElement = document.querySelector(`#edit-question-${qid}-options`).closest('.question-form');
+            questionElement.remove();
+        }
+        
+        function updateEditQuestionType(qid, type, correctAnswer = '', optionsText = '') {
+            const container = document.getElementById(`edit-question-${qid}-options`);
+            if (type === 'multiple_choice') {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>📋 Options (one per line)</label>
+                        <textarea name="questions[${qid}][options_text]" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D">${optionsText}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>✅ Correct Answer</label>
+                        <input type="text" name="questions[${qid}][correct]" required placeholder="e.g., Option A" value="${correctAnswer}">
+                    </div>
+                `;
+            } else if (type === 'fill_in') {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>✅ Correct Answer</label>
+                        <input type="text" name="questions[${qid}][correct]" required placeholder="The correct answer" value="${correctAnswer}">
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+            }
         }
         
         // Close modals when clicking outside
