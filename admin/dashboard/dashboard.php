@@ -130,6 +130,7 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
   <h1>📘 Admin Dashboard – Learn Dutch</h1>
   <div class="admin-controls">
     <span>Logged in as: <strong><?= $_SESSION['admin'] ?></strong></span>
+    <a href="../courses/manage_courses.php" class="btn small">📚 Manage Courses</a>
     <a href="../planning/planning.php" class="btn small">📅 Course Planning</a>
     <a href="../auth/change_password.php" class="btn small">🔐 Change Password</a>
     <a href="../../index.php" class="btn small">← Website</a>
@@ -154,6 +155,8 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
     <button id="btn-Pending" class="btn filter-btn" onclick="filterRows('Pending')">Pending</button>
     <button id="btn-Planned" class="btn filter-btn" onclick="filterRows('Planned')">Planned</button>
     <button id="btn-Scheduled" class="btn filter-btn" onclick="filterRows('Scheduled')">Scheduled</button>
+    <a href="../courses/manage_courses.php" class="btn small" style="background: #667eea; color: white;">📚 LMS Courses</a>
+    <a href="../courses/upload_video.php" class="btn small" style="background: #10b981; color: white;">🎥 Upload Video</a>
     <a href="../students/registered_students.php" class="btn small">Manage Registered Students</a>
   </div>
 </section>
