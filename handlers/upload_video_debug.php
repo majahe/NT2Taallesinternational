@@ -4,12 +4,8 @@
  * Handles video file uploads with validation and storage
  */
 
-// VPS Windows temporary fix
-ini_set('upload_max_filesize', '500M');
-ini_set('post_max_size', '500M');
-ini_set('max_execution_time', 300);
-ini_set('max_input_time', 300);
-ini_set('memory_limit', '256M');
+// Include PHP configuration override
+require_once __DIR__ . '/../includes/php_config.php';
 
 session_start();
 if (!isset($_SESSION['admin'])) {
@@ -69,7 +65,10 @@ if (!isset($_FILES['video'])) {
         'success' => false,
         'error' => 'No file uploaded',
         'debug' => $debug_info,
-        'files' => $_FILES
+        'files' => $_FILES,
+        'request_method' => $_SERVER['REQUEST_METHOD'],
+        'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'not set',
+        'content_length' => $_SERVER['CONTENT_LENGTH'] ?? 'not set'
     ]);
     exit;
 }
