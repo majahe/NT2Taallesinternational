@@ -1,5 +1,5 @@
 <?php
-// Enable error reporting for debugging (remove in production)
+// Enable error reporting (errors logged, not displayed in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
@@ -18,24 +18,22 @@ if ($conn->connect_error) {
     die("Database connection failed. Please check server logs.");
 }
 
-// First, update the status ENUM to include 'Scheduled' (only if needed)
-$alter_status_sql = "ALTER TABLE registrations MODIFY COLUMN status ENUM('New', 'Pending', 'Planned', 'Scheduled', 'Completed', 'Cancelled') DEFAULT 'New'";
-$conn->query($alter_status_sql);
-// Ignore errors if enum already includes 'Scheduled'
+// Check and update database schema only if needed (suppress errors for already existing columns)
+@$conn->query("ALTER TABLE registrations MODIFY COLUMN status ENUM('New', 'Pending', 'Planned', 'Scheduled', 'Completed', 'Cancelled') DEFAULT 'New'");
 
-// Check if required columns exist, if not add them
-$columns_check = $conn->query("SHOW COLUMNS FROM registrations LIKE 'course_date'");
-if ($columns_check && $columns_check->num_rows == 0) {
-    // Add missing columns
-    $alter_sql = "ALTER TABLE registrations 
-                  ADD COLUMN course_date DATE NULL,
-                  ADD COLUMN course_time TIME NULL,
-                  ADD COLUMN instructor VARCHAR(100) NULL,
-                  ADD COLUMN location VARCHAR(100) NULL,
-                  ADD COLUMN planning_notes TEXT NULL";
-    $result = $conn->query($alter_sql);
-    if (!$result) {
-        error_log("Error adding columns: " . $conn->error);
+// Check if required columns exist, if not add them (one at a time to avoid errors)
+$required_columns = ['course_date', 'course_time', 'instructor', 'location', 'planning_notes'];
+foreach ($required_columns as $column) {
+    $check = @$conn->query("SHOW COLUMNS FROM registrations LIKE '$column'");
+    if (!$check || $check->num_rows == 0) {
+        $alter_map = [
+            'course_date' => "ADD COLUMN course_date DATE NULL",
+            'course_time' => "ADD COLUMN course_time TIME NULL",
+            'instructor' => "ADD COLUMN instructor VARCHAR(100) NULL",
+            'location' => "ADD COLUMN location VARCHAR(100) NULL",
+            'planning_notes' => "ADD COLUMN planning_notes TEXT NULL"
+        ];
+        @$conn->query("ALTER TABLE registrations " . $alter_map[$column]);
     }
 }
 
@@ -63,7 +61,7 @@ if (isset($_POST['schedule_course'])) {
     $stmt->execute();
     $stmt->close();
     
-    header("Location: planning.php?success=1");
+    header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
     exit;
   } else {
     $error_message = "Database error: " . $conn->error;
