@@ -1,7 +1,7 @@
 <?php
-// Enable error reporting (errors logged, not displayed in production)
+// Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
 ini_set('log_errors', 1);
 
 session_start();
@@ -10,22 +10,36 @@ if (!isset($_SESSION['admin'])) {
   exit;
 }
 
-include '../../includes/db_connect.php';
+// Include database connection with proper error handling
+try {
+    require_once __DIR__ . '/../../includes/db_connect.php';
+} catch (Exception $e) {
+    die("Error loading database connection: " . $e->getMessage());
+}
 
 // Check database connection
-if ($conn->connect_error) {
-    error_log("Database connection error: " . $conn->connect_error);
-    die("Database connection failed. Please check server logs.");
+if (!isset($conn) || $conn->connect_error) {
+    $error_msg = isset($conn) ? $conn->connect_error : "Connection object not set";
+    error_log("Database connection error: " . $error_msg);
+    die("Database connection failed: " . htmlspecialchars($error_msg));
 }
 
 // Check and update database schema only if needed (suppress errors for already existing columns)
-@$conn->query("ALTER TABLE registrations MODIFY COLUMN status ENUM('New', 'Pending', 'Planned', 'Scheduled', 'Completed', 'Cancelled') DEFAULT 'New'");
+$alter_status_result = @$conn->query("ALTER TABLE registrations MODIFY COLUMN status ENUM('New', 'Pending', 'Planned', 'Scheduled', 'Completed', 'Cancelled', 'Registered') DEFAULT 'New'");
+if (!$alter_status_result && $conn->errno != 1060) { // 1060 = Duplicate column name error
+    error_log("Status column modification warning: " . $conn->error);
+}
 
 // Check if required columns exist, if not add them (one at a time to avoid errors)
 $required_columns = ['course_date', 'course_time', 'instructor', 'location', 'planning_notes'];
 foreach ($required_columns as $column) {
     $check = @$conn->query("SHOW COLUMNS FROM registrations LIKE '$column'");
-    if (!$check || $check->num_rows == 0) {
+    if ($check === false) {
+        error_log("Error checking column '$column': " . $conn->error);
+        continue;
+    }
+    
+    if ($check->num_rows == 0) {
         $alter_map = [
             'course_date' => "ADD COLUMN course_date DATE NULL",
             'course_time' => "ADD COLUMN course_time TIME NULL",
@@ -33,7 +47,10 @@ foreach ($required_columns as $column) {
             'location' => "ADD COLUMN location VARCHAR(100) NULL",
             'planning_notes' => "ADD COLUMN planning_notes TEXT NULL"
         ];
-        @$conn->query("ALTER TABLE registrations " . $alter_map[$column]);
+        $alter_result = @$conn->query("ALTER TABLE registrations " . $alter_map[$column]);
+        if (!$alter_result && $conn->errno != 1060) {
+            error_log("Error adding column '$column': " . $conn->error);
+        }
     }
 }
 
@@ -69,42 +86,34 @@ if (isset($_POST['schedule_course'])) {
 }
 
 // Get all planned registrations
-$planned_registrations_result = $conn->query("
-  SELECT * FROM registrations 
-  WHERE status = 'Planned' 
-  ORDER BY created_at ASC
-");
+$planned_registrations_query = "SELECT * FROM registrations WHERE status = 'Planned' ORDER BY created_at ASC";
+$planned_registrations_result = $conn->query($planned_registrations_query);
 
 if (!$planned_registrations_result) {
     error_log("Planning query error: " . $conn->error);
-    $planned_registrations = [];
-    $planned_count = 0;
-} else {
-    $planned_registrations = [];
-    while($row = $planned_registrations_result->fetch_assoc()) {
-        $planned_registrations[] = $row;
-    }
-    $planned_count = count($planned_registrations);
+    die("Database query error: " . htmlspecialchars($conn->error));
 }
 
+$planned_registrations = [];
+while($row = $planned_registrations_result->fetch_assoc()) {
+    $planned_registrations[] = $row;
+}
+$planned_count = count($planned_registrations);
+
 // Get scheduled courses for calendar view
-$scheduled_courses_result = $conn->query("
-  SELECT * FROM registrations 
-  WHERE status = 'Scheduled' AND course_date IS NOT NULL
-  ORDER BY course_date, course_time ASC
-");
+$scheduled_courses_query = "SELECT * FROM registrations WHERE status = 'Scheduled' AND course_date IS NOT NULL ORDER BY course_date, course_time ASC";
+$scheduled_courses_result = $conn->query($scheduled_courses_query);
 
 if (!$scheduled_courses_result) {
     error_log("Scheduled courses query error: " . $conn->error);
-    $scheduled_courses = [];
-    $scheduled_count = 0;
-} else {
-    $scheduled_courses = [];
-    while($row = $scheduled_courses_result->fetch_assoc()) {
-        $scheduled_courses[] = $row;
-    }
-    $scheduled_count = count($scheduled_courses);
+    die("Database query error: " . htmlspecialchars($conn->error));
 }
+
+$scheduled_courses = [];
+while($row = $scheduled_courses_result->fetch_assoc()) {
+    $scheduled_courses[] = $row;
+}
+$scheduled_count = count($scheduled_courses);
 
 // Calendar view and navigation
 $view = isset($_GET['view']) ? $_GET['view'] : 'week';
