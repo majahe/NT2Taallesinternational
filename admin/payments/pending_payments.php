@@ -602,6 +602,21 @@ $outstanding = $conn->query("SELECT SUM(total_amount - amount_paid) AS c FROM re
     function closePrintOptionsModal() {
       document.getElementById('printOptionsModal').classList.remove('show');
     }
+
+    // Close modal when page loads (prevents modal from showing when navigating back)
+    window.addEventListener('load', function() {
+      document.getElementById('printOptionsModal').classList.remove('show');
+    });
+
+    // Close modal before form submission
+    document.addEventListener('DOMContentLoaded', function() {
+      const printForm = document.querySelector('#printOptionsModal form');
+      if (printForm) {
+        printForm.addEventListener('submit', function() {
+          closePrintOptionsModal();
+        });
+      }
+    });
   </script>
 </head>
 <body>
