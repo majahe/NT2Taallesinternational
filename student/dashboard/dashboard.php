@@ -1,4 +1,8 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once __DIR__ . '/../../includes/student_auth.php';
 require_once __DIR__ . '/../../includes/db_connect.php';
 require_student_login();
@@ -7,26 +11,41 @@ $student_id = $_SESSION['student_id'];
 $student_name = $_SESSION['student_name'];
 
 // Get enrolled courses
-$courses = get_student_courses($student_id);
+try {
+    $courses = get_student_courses($student_id);
+} catch (Exception $e) {
+    error_log("Error getting courses: " . $e->getMessage());
+    $courses = [];
+}
 
 // Get recent activity
-$stmt = $conn->prepare("
-    SELECT l.title as lesson_title, l.id as lesson_id, c.title as course_title, c.id as course_id, sp.completed_at
-    FROM student_progress sp
-    JOIN lessons l ON sp.lesson_id = l.id
-    JOIN course_modules m ON l.module_id = m.id
-    JOIN courses c ON m.course_id = c.id
-    WHERE sp.student_id = ? AND sp.status = 'completed'
-    ORDER BY sp.completed_at DESC
-    LIMIT 5
-");
-$stmt->bind_param("i", $student_id);
-$stmt->execute();
-$recent_activity = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+try {
+    $stmt = $conn->prepare("
+        SELECT l.title as lesson_title, l.id as lesson_id, c.title as course_title, c.id as course_id, sp.completed_at
+        FROM student_progress sp
+        JOIN lessons l ON sp.lesson_id = l.id
+        JOIN course_modules m ON l.module_id = m.id
+        JOIN courses c ON m.course_id = c.id
+        WHERE sp.student_id = ? AND sp.status = 'completed'
+        ORDER BY sp.completed_at DESC
+        LIMIT 5
+    ");
+    $stmt->bind_param("i", $student_id);
+    $stmt->execute();
+    $recent_activity = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+} catch (Exception $e) {
+    error_log("Error getting recent activity: " . $e->getMessage());
+    $recent_activity = [];
+}
 
 // Get total points
-$total_points = get_student_points($student_id);
+try {
+    $total_points = get_student_points($student_id);
+} catch (Exception $e) {
+    error_log("Error getting points: " . $e->getMessage());
+    $total_points = 0;
+}
 
 // Get courses with progress
 $courses_with_progress = [];
