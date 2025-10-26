@@ -33,10 +33,15 @@ $stmt->close();
 $token = bin2hex(random_bytes(32));
 $token_expires = date('Y-m-d H:i:s', strtotime('+7 days'));
 
-// Update student with token (if token columns don't exist, we'll add them)
-$conn->query("ALTER TABLE registrations 
-    ADD COLUMN IF NOT EXISTS password_token VARCHAR(64) NULL,
-    ADD COLUMN IF NOT EXISTS password_token_expires DATETIME NULL");
+// Check if token columns exist and add them if needed
+$check_token = $conn->query("SHOW COLUMNS FROM registrations LIKE 'password_token'");
+if ($check_token->num_rows == 0) {
+    $conn->query("ALTER TABLE registrations ADD COLUMN password_token VARCHAR(64) NULL");
+}
+$check_expires = $conn->query("SHOW COLUMNS FROM registrations LIKE 'password_token_expires'");
+if ($check_expires->num_rows == 0) {
+    $conn->query("ALTER TABLE registrations ADD COLUMN password_token_expires DATETIME NULL");
+}
 
 $stmt = $conn->prepare("UPDATE registrations SET password_token = ?, password_token_expires = ? WHERE id = ?");
 $stmt->bind_param("ssi", $token, $token_expires, $student_id);
@@ -44,6 +49,11 @@ $stmt->execute();
 $stmt->close();
 
 // Create enrollment
+// Convert empty string to NULL for optional date field
+if (empty($access_until)) {
+    $access_until = null;
+}
+
 $stmt = $conn->prepare("
     INSERT INTO student_enrollments (student_id, course_id, access_until, status) 
     VALUES (?, ?, ?, 'active')
@@ -53,8 +63,11 @@ $stmt->bind_param("iis", $student_id, $course_id, $access_until);
 $stmt->execute();
 $stmt->close();
 
-// Mark course access as granted
-$conn->query("UPDATE registrations SET course_access_granted = TRUE WHERE id = $student_id");
+// Mark course access as granted (check if column exists first)
+$check_granted = $conn->query("SHOW COLUMNS FROM registrations LIKE 'course_access_granted'");
+if ($check_granted->num_rows > 0) {
+    $conn->query("UPDATE registrations SET course_access_granted = TRUE WHERE id = $student_id");
+}
 
 // Send email with login instructions
 try {
