@@ -12,8 +12,7 @@ Before you begin, you'll need:
 - Basic computer skills
 - About 30-60 minutes of time
 
-## 🚀 Step 1: Create a GitHub Account
-
+## 🚀 Step 1: Create a GitHub Account.
 ### 1.1 Go to GitHub
 1. Open your web browser
 2. Go to [github.com](https://github.com)
