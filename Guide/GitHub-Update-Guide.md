@@ -125,6 +125,10 @@ git commit -m "Add / New / update files"
 # 4. Push to GitHub
 git push origin main
 
+git status
+git add .
+git commit -m "Add / New / update files"
+git push origin main
 
 
 
