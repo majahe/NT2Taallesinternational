@@ -1,4 +1,9 @@
 <?php
+// Enable error reporting for debugging (remove in production)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 session_start();
 if (!isset($_SESSION['admin'])) {
   header("Location: ../auth/index.php");
@@ -7,13 +12,20 @@ if (!isset($_SESSION['admin'])) {
 
 include '../../includes/db_connect.php';
 
-// First, update the status ENUM to include 'Scheduled'
+// Check database connection
+if ($conn->connect_error) {
+    error_log("Database connection error: " . $conn->connect_error);
+    die("Database connection failed. Please check server logs.");
+}
+
+// First, update the status ENUM to include 'Scheduled' (only if needed)
 $alter_status_sql = "ALTER TABLE registrations MODIFY COLUMN status ENUM('New', 'Pending', 'Planned', 'Scheduled', 'Completed', 'Cancelled') DEFAULT 'New'";
 $conn->query($alter_status_sql);
+// Ignore errors if enum already includes 'Scheduled'
 
 // Check if required columns exist, if not add them
 $columns_check = $conn->query("SHOW COLUMNS FROM registrations LIKE 'course_date'");
-if ($columns_check->num_rows == 0) {
+if ($columns_check && $columns_check->num_rows == 0) {
     // Add missing columns
     $alter_sql = "ALTER TABLE registrations 
                   ADD COLUMN course_date DATE NULL,
@@ -21,7 +33,10 @@ if ($columns_check->num_rows == 0) {
                   ADD COLUMN instructor VARCHAR(100) NULL,
                   ADD COLUMN location VARCHAR(100) NULL,
                   ADD COLUMN planning_notes TEXT NULL";
-    $conn->query($alter_sql);
+    $result = $conn->query($alter_sql);
+    if (!$result) {
+        error_log("Error adding columns: " . $conn->error);
+    }
 }
 
 // Handle course scheduling
@@ -56,18 +71,42 @@ if (isset($_POST['schedule_course'])) {
 }
 
 // Get all planned registrations
-$planned_registrations = $conn->query("
+$planned_registrations_result = $conn->query("
   SELECT * FROM registrations 
   WHERE status = 'Planned' 
   ORDER BY created_at ASC
 ");
 
+if (!$planned_registrations_result) {
+    error_log("Planning query error: " . $conn->error);
+    $planned_registrations = [];
+    $planned_count = 0;
+} else {
+    $planned_registrations = [];
+    while($row = $planned_registrations_result->fetch_assoc()) {
+        $planned_registrations[] = $row;
+    }
+    $planned_count = count($planned_registrations);
+}
+
 // Get scheduled courses for calendar view
-$scheduled_courses = $conn->query("
+$scheduled_courses_result = $conn->query("
   SELECT * FROM registrations 
   WHERE status = 'Scheduled' AND course_date IS NOT NULL
   ORDER BY course_date, course_time ASC
 ");
+
+if (!$scheduled_courses_result) {
+    error_log("Scheduled courses query error: " . $conn->error);
+    $scheduled_courses = [];
+    $scheduled_count = 0;
+} else {
+    $scheduled_courses = [];
+    while($row = $scheduled_courses_result->fetch_assoc()) {
+        $scheduled_courses[] = $row;
+    }
+    $scheduled_count = count($scheduled_courses);
+}
 
 // Calendar view and navigation
 $view = isset($_GET['view']) ? $_GET['view'] : 'week';
@@ -368,10 +407,10 @@ if ($view === 'month') {
     <div class="planning-grid">
       <!-- Planned Students Section -->
       <div class="planning-card">
-        <h2>📋 Students to Schedule (<?= $planned_registrations ? $planned_registrations->num_rows : 0 ?>)</h2>
+        <h2>📋 Students to Schedule (<?= $planned_count ?>)</h2>
         
-        <?php if($planned_registrations && $planned_registrations->num_rows > 0): ?>
-        <?php while($student = $planned_registrations->fetch_assoc()): ?>
+        <?php if($planned_count > 0): ?>
+        <?php foreach($planned_registrations as $student): ?>
         <div class="planned-student">
           <div class="student-info">
             <div>
@@ -430,7 +469,7 @@ if ($view === 'month') {
             <button type="submit" name="schedule_course" class="btn">Schedule Course</button>
           </form>
         </div>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
         <?php else: ?>
           <p style="text-align: center; color: #666; padding: 20px;">
             No students with "Planned" status found.
@@ -491,8 +530,8 @@ if ($view === 'month') {
         <div class="calendar-grid">
           <?php
           $courses_by_date = [];
-          if($scheduled_courses) {
-            while($course = $scheduled_courses->fetch_assoc()) {
+          if($scheduled_count > 0) {
+            foreach($scheduled_courses as $course) {
               $courses_by_date[$course['course_date']][] = $course;
             }
           }
