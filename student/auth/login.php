@@ -50,14 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['student_name'] = $student['name'];
                 
                 // Redirect to dashboard or intended page
-                // Temporary: redirect to test page to verify session
-                if (file_exists(__DIR__ . '/test_login.php')) {
-                    header("Location: test_login.php");
-                } else {
-                    $redirect = $_SESSION['redirect_after_login'] ?? '/student/dashboard/dashboard.php';
-                    unset($_SESSION['redirect_after_login']);
-                    header("Location: " . $redirect);
-                }
+                $redirect = $_SESSION['redirect_after_login'] ?? '/student/dashboard/dashboard.php';
+                unset($_SESSION['redirect_after_login']);
+                header("Location: " . $redirect);
                 exit;
             }
         } else {
