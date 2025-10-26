@@ -126,7 +126,10 @@ if (!isset($_SESSION['admin'])) {
     <div class="admin-container">
         <div class="page-header">
             <h1>Upload Video</h1>
-            <a href="../dashboard/dashboard.php" class="btn" style="background: #667eea; color: white;">← Back to Dashboard</a>
+            <div>
+                <a href="manual_upload.php" class="btn" style="background: #10b981; color: white; margin-right: 1rem;">📁 Manual Upload</a>
+                <a href="../dashboard/dashboard.php" class="btn" style="background: #667eea; color: white;">← Back to Dashboard</a>
+            </div>
         </div>
         
         <!-- Success Message -->
@@ -137,6 +140,11 @@ if (!isset($_SESSION['admin'])) {
         <!-- Error Message -->
         <div id="errorMessage" class="alert-message alert-error">
             <strong>✗ Error:</strong> <span id="errorText"></span>
+        </div>
+        
+        <!-- Manual Upload Notice -->
+        <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #2196f3;">
+            <strong>💡 Alternative Upload Method:</strong> If you're having trouble with large file uploads due to server limits, try the <a href="manual_upload.php" style="color: #1976d2; font-weight: bold;">Manual Upload</a> method instead.
         </div>
         
         <form id="uploadForm" enctype="multipart/form-data">
