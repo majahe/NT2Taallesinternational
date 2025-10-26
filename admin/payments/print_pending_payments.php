@@ -1,11 +1,11 @@
 <?php
 session_start();
 if (!isset($_SESSION['admin'])) {
-  header("Location: index.php");
+  header("Location: ../auth/index.php");
   exit;
 }
 
-include '../includes/db_connect.php';
+include '../../includes/db_connect.php';
 
 // Get the print type from the form
 $print_type = isset($_POST['print_type']) ? $_POST['print_type'] : 'All';

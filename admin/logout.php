@@ -1,6 +1,5 @@
 <?php
-session_start();
-session_destroy();
-header("Location: index.php");
+// Redirect to new auth location
+header("Location: auth/logout.php");
 exit;
 ?>

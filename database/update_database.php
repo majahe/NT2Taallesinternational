@@ -51,7 +51,7 @@ foreach ($columns_to_add as $column => $type) {
 }
 
 echo "<h3>Database update completed!</h3>";
-echo "<p><a href='../admin/dashboard.php'>Go to Dashboard</a></p>";
+echo "<p><a href='../admin/dashboard/dashboard.php'>Go to Dashboard</a></p>";
 
 $conn->close();
 ?>
