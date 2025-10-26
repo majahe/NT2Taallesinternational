@@ -4,6 +4,13 @@
  * Handles video file uploads with validation and storage
  */
 
+// VPS Windows temporary fix
+ini_set('upload_max_filesize', '500M');
+ini_set('post_max_size', '500M');
+ini_set('max_execution_time', 300);
+ini_set('max_input_time', 300);
+ini_set('memory_limit', '256M');
+
 session_start();
 if (!isset($_SESSION['admin'])) {
     header("HTTP/1.1 403 Forbidden");
