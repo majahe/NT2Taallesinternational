@@ -56,9 +56,9 @@ New-Item -ItemType Directory -Path "uploads\videos" -Force
 New-Item -ItemType Directory -Path "uploads\assignments" -Force
 
 # Geef IIS_IUSRS schrijfrechten
-icacls uploads /grant IIS_IUSRS:(OI)(CI)F
-icacls uploads\videos /grant IIS_IUSRS:(OI)(CI)F
-icacls uploads\assignments /grant IIS_IUSRS:(OI)(CI)F
+icacls uploads /grant "IIS_IUSRS:(OI)(CI)F"
+icacls uploads\videos /grant "IIS_IUSRS:(OI)(CI)F"
+icacls uploads\assignments /grant "IIS_IUSRS:(OI)(CI)F"
 ```
 
 ### 4. Via File Explorer
