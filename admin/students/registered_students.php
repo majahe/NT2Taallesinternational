@@ -463,6 +463,7 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     <span class="payment-status <?= $payment_class ?>"><?= htmlspecialchars($row['payment_status'] ?? 'Pending') ?></span>
     
     <div class="card-actions" onclick="event.stopPropagation();">
+      <button onclick="openGrantAccessModal(<?= $row['id'] ?>, '<?= htmlspecialchars(addslashes($row['name'])) ?>', '<?= htmlspecialchars(addslashes($row['email'])) ?>'); return false;" class="btn-small" style="background: #10b981; color: white;">Grant Course Access</button>
       <a href="?delete=<?= $row['id'] ?>" class="btn-small btn-danger-small" onclick="return confirm('Delete this student record?')">Delete</a>
     </div>
   </div>
@@ -553,6 +554,54 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     </form>
   </div>
 </div>
+
+<!-- Grant Course Access Modal -->
+<div id="grantAccessModal" class="modal-overlay" onclick="if(event.target === this) closeGrantAccessModal()">
+  <div class="modal-content">
+    <h2>Grant Course Access</h2>
+    <p id="grantStudentName"></p>
+    
+    <form method="POST" action="grant_course_access.php">
+      <input type="hidden" id="grantStudentId" name="student_id">
+      
+      <div class="form-group">
+        <label>Select Course *</label>
+        <select id="grantCourseId" name="course_id" required>
+          <option value="">Select a course</option>
+          <?php
+          $courses_result = $conn->query("SELECT id, title FROM courses WHERE is_active = 1 ORDER BY title");
+          while ($course = $courses_result->fetch_assoc()):
+          ?>
+            <option value="<?= $course['id'] ?>"><?= htmlspecialchars($course['title']) ?></option>
+          <?php endwhile; ?>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Access Until (Optional)</label>
+        <input type="date" name="access_until">
+        <small>Leave empty for unlimited access</small>
+      </div>
+      
+      <div class="modal-buttons">
+        <button type="button" class="btn-cancel" onclick="closeGrantAccessModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Grant Access</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openGrantAccessModal(id, name, email) {
+  document.getElementById('grantAccessModal').classList.add('show');
+  document.getElementById('grantStudentId').value = id;
+  document.getElementById('grantStudentName').textContent = name + ' (' + email + ')';
+}
+
+function closeGrantAccessModal() {
+  document.getElementById('grantAccessModal').classList.remove('show');
+}
+</script>
 
 </body>
 </html>
