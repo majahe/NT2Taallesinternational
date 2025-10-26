@@ -60,7 +60,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_assignment']))
             $question_text = $qdata['text'] ?? '';
             $question_type = $qdata['type'] ?? 'multiple_choice';
             $correct_answer = $qdata['correct'] ?? '';
-            $options = isset($qdata['options']) ? json_encode($qdata['options']) : null;
+            
+            // Handle options properly
+            $options = null;
+            if (isset($qdata['options'])) {
+                if (is_array($qdata['options'])) {
+                    $options = json_encode($qdata['options']);
+                } else {
+                    $options = $qdata['options']; // Already JSON string
+                }
+            }
+            
             $qpoints = intval($qdata['points'] ?? 1);
             $order_index = intval($qdata['order'] ?? 0);
             
@@ -517,22 +527,51 @@ foreach ($assignments as $assignment) {
             });
         });
         
-        // Handle edit form submission
-        document.querySelector('#editModal form').addEventListener('submit', function(e) {
-            // Convert options text to JSON array for edit form
-            const optionsTexts = document.querySelectorAll('#editModal [name$="[options_text]"]');
-            optionsTexts.forEach(function(el) {
-                const qid = el.name.match(/\[(\d+)\]/)[1];
-                const options = el.value.split('\n').filter(o => o.trim());
-                
-                // Create hidden input with JSON options
-                const jsonInput = document.createElement('input');
-                jsonInput.type = 'hidden';
-                jsonInput.name = `questions[${qid}][options]`;
-                jsonInput.value = JSON.stringify(options);
-                el.parentNode.appendChild(jsonInput);
-            });
-        });
+         // Handle edit form submission
+         document.querySelector('#editModal form').addEventListener('submit', function(e) {
+             console.log('Edit form submitting...');
+             
+             // Convert options text to JSON array for edit form
+             const optionsTexts = document.querySelectorAll('#editModal [name$="[options_text]"]');
+             console.log('Found options texts:', optionsTexts.length);
+             
+             optionsTexts.forEach(function(el) {
+                 const qid = el.name.match(/\[(\d+)\]/)[1];
+                 const options = el.value.split('\n').filter(o => o.trim());
+                 console.log(`Question ${qid} options:`, options);
+                 
+                 // Create hidden input with JSON options
+                 const jsonInput = document.createElement('input');
+                 jsonInput.type = 'hidden';
+                 jsonInput.name = `questions[${qid}][options]`;
+                 jsonInput.value = JSON.stringify(options);
+                 el.parentNode.appendChild(jsonInput);
+                 
+                 console.log(`Added hidden input for question ${qid}:`, jsonInput.value);
+             });
+             
+             // Also handle correct answers
+             const correctAnswers = document.querySelectorAll('#editModal [name$="[correct]"]');
+             correctAnswers.forEach(function(el) {
+                 const qid = el.name.match(/\[(\d+)\]/)[1];
+                 const correctAnswer = el.value;
+                 console.log(`Question ${qid} correct answer:`, correctAnswer);
+                 
+                 // Ensure correct answer is set
+                 if (!correctAnswer.trim()) {
+                     alert('Please fill in the correct answer for all questions');
+                     e.preventDefault();
+                     return false;
+                 }
+             });
+             
+             // Debug: Log all form data
+             const formData = new FormData(this);
+             console.log('Form data being submitted:');
+             for (let [key, value] of formData.entries()) {
+                 console.log(key, ':', value);
+             }
+         });
         
         function openCreateModal() {
             document.getElementById('createModal').classList.add('show');
