@@ -228,7 +228,7 @@ if (!isset($_SESSION['admin'])) {
                     document.getElementById('errorText').textContent = 'Network error occurred';
                 });
                 
-                xhr.open('POST', '../../handlers/upload_video.php');
+                xhr.open('POST', '../../handlers/upload_video_debug.php');
                 xhr.send(formData);
                 document.getElementById('uploadProgress').style.display = 'block';
             });
