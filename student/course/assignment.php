@@ -1,4 +1,8 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once __DIR__ . '/../../includes/student_auth.php';
 require_once __DIR__ . '/../../includes/db_connect.php';
 require_student_login();
@@ -31,15 +35,20 @@ if (!check_course_access($student_id, $assignment['course_id'])) {
 }
 
 // Get questions
-$stmt = $conn->prepare("
-    SELECT * FROM assignment_questions 
-    WHERE assignment_id = ? 
-    ORDER BY order_index
-");
-$stmt->bind_param("i", $assignment_id);
-$stmt->execute();
-$questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+try {
+    $stmt = $conn->prepare("
+        SELECT * FROM assignment_questions 
+        WHERE assignment_id = ? 
+        ORDER BY order_index
+    ");
+    $stmt->bind_param("i", $assignment_id);
+    $stmt->execute();
+    $questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+} catch (Exception $e) {
+    error_log("Error getting questions: " . $e->getMessage());
+    $questions = [];
+}
 
 // Check if already submitted
 $stmt = $conn->prepare("SELECT * FROM student_assignments WHERE student_id = ? AND assignment_id = ?");
@@ -85,6 +94,9 @@ if ($submission && ($submission['status'] === 'graded' || $submission['status'] 
                 <input type="hidden" name="assignment_id" value="<?= $assignment_id ?>">
                 
                 <div class="questions-container">
+                    <?php if (empty($questions)): ?>
+                        <p class="alert alert-error">No questions found for this assignment.</p>
+                    <?php else: ?>
                     <?php foreach ($questions as $index => $question): ?>
                         <div class="question-item">
                             <h3>Question <?= $index + 1 ?></h3>
@@ -94,23 +106,44 @@ if ($submission && ($submission['status'] === 'graded' || $submission['status'] 
                             <?php if ($question['question_type'] === 'multiple_choice'): ?>
                                 <?php
                                 $options = json_decode($question['options'], true);
-                                $old_answer = $submission ? json_decode($submission['answers'], true)[$question['id']] ?? '' : '';
+                                if (!is_array($options)) {
+                                    $options = [];
+                                }
+                                $old_answer = '';
+                                if ($submission && !empty($submission['answers'])) {
+                                    $submission_answers = json_decode($submission['answers'], true);
+                                    if (is_array($submission_answers)) {
+                                        $old_answer = $submission_answers[$question['id']] ?? '';
+                                    }
+                                }
                                 ?>
                                 <div class="options-list">
-                                    <?php foreach ($options as $opt_index => $option): ?>
-                                        <label class="option-label">
-                                            <input type="radio" 
-                                                   name="answers[<?= $question['id'] ?>]" 
-                                                   value="<?= htmlspecialchars($option) ?>"
-                                                   <?= $old_answer === $option ? 'checked' : '' ?>
-                                                   required>
-                                            <span><?= htmlspecialchars($option) ?></span>
-                                        </label>
-                                    <?php endforeach; ?>
+                                    <?php if (empty($options)): ?>
+                                        <p class="error">No options available for this question.</p>
+                                    <?php else: ?>
+                                        <?php foreach ($options as $opt_index => $option): ?>
+                                            <label class="option-label">
+                                                <input type="radio" 
+                                                       name="answers[<?= $question['id'] ?>]" 
+                                                       value="<?= htmlspecialchars($option) ?>"
+                                                       <?= $old_answer === $option ? 'checked' : '' ?>
+                                                       required>
+                                                <span><?= htmlspecialchars($option) ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </div>
                                 
                             <?php elseif ($question['question_type'] === 'fill_in'): ?>
-                                <?php $old_answer = $submission ? json_decode($submission['answers'], true)[$question['id']] ?? '' : ''; ?>
+                                <?php 
+                                $old_answer = '';
+                                if ($submission && !empty($submission['answers'])) {
+                                    $submission_answers = json_decode($submission['answers'], true);
+                                    if (is_array($submission_answers)) {
+                                        $old_answer = $submission_answers[$question['id']] ?? '';
+                                    }
+                                }
+                                ?>
                                 <input type="text" 
                                        name="answers[<?= $question['id'] ?>]" 
                                        class="form-input"
@@ -118,7 +151,15 @@ if ($submission && ($submission['status'] === 'graded' || $submission['status'] 
                                        required>
                                        
                             <?php elseif ($question['question_type'] === 'essay'): ?>
-                                <?php $old_answer = $submission ? json_decode($submission['answers'], true)[$question['id']] ?? '' : ''; ?>
+                                <?php 
+                                $old_answer = '';
+                                if ($submission && !empty($submission['answers'])) {
+                                    $submission_answers = json_decode($submission['answers'], true);
+                                    if (is_array($submission_answers)) {
+                                        $old_answer = $submission_answers[$question['id']] ?? '';
+                                    }
+                                }
+                                ?>
                                 <textarea name="answers[<?= $question['id'] ?>]" 
                                           class="form-textarea"
                                           rows="10"
@@ -140,6 +181,7 @@ if ($submission && ($submission['status'] === 'graded' || $submission['status'] 
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="form-actions">
