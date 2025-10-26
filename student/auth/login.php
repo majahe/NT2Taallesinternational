@@ -19,6 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($email) || empty($password)) {
         $error = 'Please fill in all fields';
     } else {
+        // Check if required columns exist
+        $check_password = $conn->query("SHOW COLUMNS FROM registrations LIKE 'password'");
+        $check_password_set = $conn->query("SHOW COLUMNS FROM registrations LIKE 'password_set'");
+        $check_course_access = $conn->query("SHOW COLUMNS FROM registrations LIKE 'course_access_granted'");
+        
         $stmt = $conn->prepare("SELECT id, name, email, password, password_set, course_access_granted FROM registrations WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
@@ -27,12 +32,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result->num_rows === 1) {
             $student = $result->fetch_assoc();
             
-            // Check if password is set
-            if (!$student['password_set'] || empty($student['password'])) {
+            // Check if password is set (handle NULL values)
+            $password_set = isset($student['password_set']) ? $student['password_set'] : false;
+            $has_password = !empty($student['password']);
+            $course_access = isset($student['course_access_granted']) ? $student['course_access_granted'] : false;
+            
+            if (!$password_set || !$has_password) {
                 $error = 'Please set your password first. Check your email for setup instructions.';
             } elseif (!password_verify($password, $student['password'])) {
                 $error = 'Invalid email or password';
-            } elseif (!$student['course_access_granted']) {
+            } elseif (!$course_access) {
                 $error = 'Course access has not been granted yet. Please contact the administrator.';
             } else {
                 // Successful login

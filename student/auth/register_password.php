@@ -11,19 +11,31 @@ if (empty($token)) {
     exit;
 }
 
-// Verify token (you'll need to add token field to registrations table)
-$stmt = $conn->prepare("SELECT id, email, name, password_set FROM registrations WHERE password_token = ? AND password_token_expires > NOW()");
+// Verify token and get student info
+// First check what columns exist
+$check_password_set = $conn->query("SHOW COLUMNS FROM registrations LIKE 'password_set'");
+$has_password_set = ($check_password_set->num_rows > 0);
+
+$stmt = $conn->prepare("SELECT id, email, name, password_token, password_token_expires FROM registrations WHERE password_token = ?");
 $stmt->bind_param("s", $token);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    header("Location: login.php?error=Invalid or expired token");
+    header("Location: login.php?error=Invalid access token");
     exit;
 }
 
 $student = $result->fetch_assoc();
 $student_id = $student['id'];
+
+// Check if token is expired
+if (isset($student['password_token_expires']) && $student['password_token_expires']) {
+    if (strtotime($student['password_token_expires']) < time()) {
+        header("Location: login.php?error=Token has expired");
+        exit;
+    }
+}
 
 // Handle password setup
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,14 +49,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password !== $confirm_password) {
         $error = 'Passwords do not match';
     } else {
+        // Check if password column exists
+        $check_password = $conn->query("SHOW COLUMNS FROM registrations LIKE 'password'");
+        if ($check_password->num_rows == 0) {
+            $conn->query("ALTER TABLE registrations ADD COLUMN password VARCHAR(255) NULL");
+        }
+        
+        // Check if password_set column exists
+        $check_password_set = $conn->query("SHOW COLUMNS FROM registrations LIKE 'password_set'");
+        if ($check_password_set->num_rows == 0) {
+            $conn->query("ALTER TABLE registrations ADD COLUMN password_set BOOLEAN DEFAULT FALSE");
+        }
+        
         // Set password
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("UPDATE registrations SET password = ?, password_set = TRUE, password_token = NULL WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE registrations SET password = ?, password_set = TRUE, password_token = NULL, password_token_expires = NULL WHERE id = ?");
         $stmt->bind_param("si", $hashed_password, $student_id);
         
         if ($stmt->execute()) {
             $success = 'Password set successfully! You can now login.';
-            // Clear token
             $stmt->close();
             header("Location: login.php?success=" . urlencode($success));
             exit;
