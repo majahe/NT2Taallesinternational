@@ -82,7 +82,7 @@ $stmt->close();
             gap: 0.5rem;
         }
         .modal {
-            display: none;
+            display: none !important;
             position: fixed;
             top: 0;
             left: 0;
@@ -94,7 +94,7 @@ $stmt->close();
             justify-content: center;
         }
         .modal.show {
-            display: flex;
+            display: flex !important;
         }
         .modal-content {
             background: white;
