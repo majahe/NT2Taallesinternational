@@ -143,7 +143,7 @@ $stmt->close();
             color: #991b1b;
             border: 1px solid #fca5a5;
         }
-        .modal {
+        #createModal {
             display: none;
             position: fixed;
             top: 0;
@@ -152,23 +152,26 @@ $stmt->close();
             height: 100%;
             background: rgba(0,0,0,0.6);
             z-index: 1000;
-            align-items: center;
-            justify-content: center;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
         }
-        .modal.show {
+        #createModal.show {
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
         }
-        .modal-content {
+        #createModal .modal-content {
             background: white;
             padding: 2.5rem;
             border-radius: 16px;
             max-width: 500px;
-            width: 90%;
+            width: 100%;
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+            margin: 0;
         }
         .modal-content h2 {
             margin: 0 0 1.5rem 0;
@@ -176,7 +179,7 @@ $stmt->close();
             font-size: 1.5rem;
             font-weight: 700;
         }
-        .modal .form-group {
+        #createModal .form-group {
             margin-bottom: 1.5rem !important;
         }
         .modal .form-group label {
@@ -186,9 +189,9 @@ $stmt->close();
             color: #2d3748 !important;
             font-size: 0.95rem !important;
         }
-        .modal .form-group input,
-        .modal .form-group select,
-        .modal .form-group textarea {
+        #createModal .form-group input,
+        #createModal .form-group select,
+        #createModal .form-group textarea {
             width: 100% !important;
             padding: 0.85rem !important;
             border: 1.5px solid #e2e8f0 !important;
@@ -198,14 +201,14 @@ $stmt->close();
             transition: border-color 0.3s ease !important;
             box-sizing: border-box !important;
         }
-        .modal .form-group input:focus,
-        .modal .form-group select:focus,
-        .modal .form-group textarea:focus {
+        #createModal .form-group input:focus,
+        #createModal .form-group select:focus,
+        #createModal .form-group textarea:focus {
             outline: none !important;
             border-color: #1a365d !important;
             box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1) !important;
         }
-        .modal .form-group textarea {
+        #createModal .form-group textarea {
             min-height: 120px !important;
             resize: vertical !important;
         }
