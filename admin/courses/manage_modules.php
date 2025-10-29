@@ -7,6 +7,11 @@ if (!isset($_SESSION['admin'])) {
 
 include '../../includes/db_connect.php';
 
+// Initialize session variables for CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $course_id = intval($_GET['course_id'] ?? 0);
 
 if ($course_id <= 0) {
@@ -16,28 +21,70 @@ if ($course_id <= 0) {
 
 // Get course info
 $stmt = $conn->prepare("SELECT * FROM courses WHERE id = ?");
+if (!$stmt) {
+    die("Database error: " . $conn->error);
+}
 $stmt->bind_param("i", $course_id);
 $stmt->execute();
 $course = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
+// Check if course exists
+if (!$course) {
+    header("Location: manage_courses.php");
+    exit;
+}
+
 // Handle module creation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_module'])) {
+    // Verify CSRF token
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed");
+    }
+    
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';
     $order_index = intval($_POST['order_index'] ?? 0);
     
-    $stmt = $conn->prepare("INSERT INTO course_modules (course_id, title, description, order_index) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("issi", $course_id, $title, $description, $order_index);
-    $stmt->execute();
-    $stmt->close();
-    
-    header("Location: manage_modules.php?course_id=" . $course_id . "&success=Module created");
-    exit;
+    if (empty($title)) {
+        $error = "Module title is required";
+    } else {
+        $stmt = $conn->prepare("INSERT INTO course_modules (course_id, title, description, order_index) VALUES (?, ?, ?, ?)");
+        if (!$stmt) {
+            $error = "Database error: " . $conn->error;
+        } else {
+            $stmt->bind_param("issi", $course_id, $title, $description, $order_index);
+            if ($stmt->execute()) {
+                $stmt->close();
+                header("Location: manage_modules.php?course_id=" . $course_id . "&success=Module created");
+                exit;
+            } else {
+                $error = "Error creating module: " . $stmt->error;
+                $stmt->close();
+            }
+        }
+    }
+}
+
+// Handle module deletion
+if (isset($_GET['delete'])) {
+    $module_id = intval($_GET['delete']);
+    $stmt = $conn->prepare("DELETE FROM course_modules WHERE id = ? AND course_id = ?");
+    if ($stmt) {
+        $stmt->bind_param("ii", $module_id, $course_id);
+        $stmt->execute();
+        $stmt->close();
+        
+        header("Location: manage_modules.php?course_id=" . $course_id . "&success=Module deleted");
+        exit;
+    }
 }
 
 // Get modules
 $stmt = $conn->prepare("SELECT * FROM course_modules WHERE course_id = ? ORDER BY order_index");
+if (!$stmt) {
+    die("Database error: " . $conn->error);
+}
 $stmt->bind_param("i", $course_id);
 $stmt->execute();
 $modules = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -80,6 +127,21 @@ $stmt->close();
         .module-actions {
             display: flex;
             gap: 0.5rem;
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
         }
         .modal {
             display: none !important;
@@ -132,6 +194,7 @@ $stmt->close();
             font-size: 0.95rem !important;
             font-family: inherit !important;
             transition: border-color 0.3s ease !important;
+            box-sizing: border-box !important;
         }
         .modal .form-group input:focus,
         .modal .form-group select:focus,
@@ -188,19 +251,32 @@ $stmt->close();
             <button onclick="openCreateModal()" class="btn btn-primary">+ New Module</button>
         </div>
         
+        <?php if (isset($_GET['success'])): ?>
+            <div class="alert alert-success"><?= htmlspecialchars($_GET['success']) ?></div>
+        <?php endif; ?>
+        
+        <?php if (isset($error)): ?>
+            <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        
         <div class="modules-list">
-            <?php foreach ($modules as $module): ?>
-                <div class="module-item">
-                    <div class="module-info">
-                        <h3><?= htmlspecialchars($module['title']) ?></h3>
-                        <p><?= htmlspecialchars($module['description']) ?></p>
-                        <small>Order: <?= $module['order_index'] ?></small>
+            <?php if (empty($modules)): ?>
+                <p style="text-align: center; color: #666; padding: 2rem;">No modules created yet. Click "New Module" to get started.</p>
+            <?php else: ?>
+                <?php foreach ($modules as $module): ?>
+                    <div class="module-item">
+                        <div class="module-info">
+                            <h3><?= htmlspecialchars($module['title']) ?></h3>
+                            <p><?= htmlspecialchars($module['description']) ?></p>
+                            <small>Order: <?= $module['order_index'] ?></small>
+                        </div>
+                        <div class="module-actions">
+                            <a href="manage_lessons.php?module_id=<?= $module['id'] ?>" class="btn btn-small">Manage Lessons</a>
+                            <a href="?course_id=<?= $course_id ?>&delete=<?= $module['id'] ?>" class="btn btn-danger btn-small" onclick="return confirm('Delete this module? This will also delete all associated lessons.')">Delete</a>
+                        </div>
                     </div>
-                    <div class="module-actions">
-                        <a href="manage_lessons.php?module_id=<?= $module['id'] ?>" class="btn btn-small">Manage Lessons</a>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
     
@@ -209,6 +285,7 @@ $stmt->close();
         <div class="modal-content">
             <h2>Create New Module</h2>
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                 <div class="form-group">
                     <label>Module Title *</label>
                     <input type="text" name="title" required>
