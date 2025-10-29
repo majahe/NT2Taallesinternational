@@ -33,93 +33,6 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// Handle assignment update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_assignment'])) {
-    $assignment_id = intval($_POST['assignment_id']);
-    $title = $_POST['title'] ?? '';
-    $description = $_POST['description'] ?? '';
-    $type = $_POST['type'] ?? 'multiple_choice';
-    $points = intval($_POST['points'] ?? 10);
-    $is_required = isset($_POST['is_required']) ? 1 : 0;
-    
-    $stmt = $conn->prepare("UPDATE assignments SET title=?, description=?, type=?, points=?, is_required=? WHERE id=? AND lesson_id=?");
-    $stmt->bind_param("sssiiii", $title, $description, $type, $points, $is_required, $assignment_id, $lesson_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    // Update questions
-    if (isset($_POST['questions']) && is_array($_POST['questions'])) {
-        // First, delete existing questions
-        $stmt = $conn->prepare("DELETE FROM assignment_questions WHERE assignment_id = ?");
-        $stmt->bind_param("i", $assignment_id);
-        $stmt->execute();
-        $stmt->close();
-        
-        // Then add updated questions
-        foreach ($_POST['questions'] as $qdata) {
-            $question_text = $qdata['text'] ?? '';
-            $question_type = $qdata['type'] ?? 'multiple_choice';
-            $correct_answer = $qdata['correct'] ?? '';
-            
-            // Handle options properly
-            $options = null;
-            if (isset($qdata['options'])) {
-                if (is_array($qdata['options'])) {
-                    $options = json_encode($qdata['options']);
-                } else {
-                    $options = $qdata['options']; // Already JSON string
-                }
-            }
-            
-            $qpoints = intval($qdata['points'] ?? 1);
-            $order_index = intval($qdata['order'] ?? 0);
-            
-            $stmt = $conn->prepare("INSERT INTO assignment_questions (assignment_id, question_text, question_type, correct_answer, options, points, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("issssii", $assignment_id, $question_text, $question_type, $correct_answer, $options, $qpoints, $order_index);
-            $stmt->execute();
-            $stmt->close();
-        }
-    }
-    
-    header("Location: manage_assignments.php?lesson_id=" . $lesson_id . "&success=Assignment updated");
-    exit;
-}
-
-// Handle assignment creation
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_assignment'])) {
-    $title = $_POST['title'] ?? '';
-    $description = $_POST['description'] ?? '';
-    $type = $_POST['type'] ?? 'multiple_choice';
-    $points = intval($_POST['points'] ?? 10);
-    $is_required = isset($_POST['is_required']) ? 1 : 0;
-    
-    $stmt = $conn->prepare("INSERT INTO assignments (lesson_id, title, description, type, points, is_required) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("isssii", $lesson_id, $title, $description, $type, $points, $is_required);
-    $stmt->execute();
-    $assignment_id = $conn->insert_id;
-    $stmt->close();
-    
-    // Add questions
-    if (isset($_POST['questions']) && is_array($_POST['questions'])) {
-        foreach ($_POST['questions'] as $qdata) {
-            $question_text = $qdata['text'] ?? '';
-            $question_type = $qdata['type'] ?? 'multiple_choice';
-            $correct_answer = $qdata['correct'] ?? '';
-            $options = isset($qdata['options']) ? json_encode($qdata['options']) : null;
-            $qpoints = intval($qdata['points'] ?? 1);
-            $order_index = intval($qdata['order'] ?? 0);
-            
-            $stmt = $conn->prepare("INSERT INTO assignment_questions (assignment_id, question_text, question_type, correct_answer, options, points, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("issssii", $assignment_id, $question_text, $question_type, $correct_answer, $options, $qpoints, $order_index);
-            $stmt->execute();
-            $stmt->close();
-        }
-    }
-    
-    header("Location: manage_assignments.php?lesson_id=" . $lesson_id . "&success=Assignment created");
-    exit;
-}
-
 // Get assignments
 $stmt = $conn->prepare("SELECT * FROM assignments WHERE lesson_id = ?");
 $stmt->bind_param("i", $lesson_id);
@@ -153,198 +66,600 @@ foreach ($assignments as $assignment) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Assignments - <?= htmlspecialchars($lesson['title']) ?></title>
     <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+        }
+        
+        /* Header Styles */
+        .admin-header {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content { width: 100%;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        
+        .header-logo { display: flex; flex-shrink: 0;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .header-logo i {
+            font-size: 1.8rem;
+        }
+        
+        .header-nav { display: flex; flex-shrink: 0;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .header-nav a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .header-nav a:hover {
+            color: white;
+        }
+        
+        /* Main Container */
         .admin-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
         }
+        
+        /* Page Header */
+        .page-header {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        
+        .page-header-content {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .page-header-content a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1a365d;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            transition: color 0.3s ease;
+        }
+        
+        .page-header-content a:hover {
+            color: #2c5282;
+        }
+        
+        .page-header h1 {
+            font-size: 2rem;
+            color: #1a365d;
+            margin: 0;
+            font-weight: 700;
+        }
+        
+        .page-header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 0.85rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(26, 54, 93, 0.25);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(26, 54, 93, 0.35);
+        }
+        
+        .btn-small {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.85rem;
+        }
+        
+        .btn-secondary {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+        }
+        
+        .btn-cancel {
+            background: white;
+            color: #2d3748;
+            border: 1.5px solid #e2e8f0;
+        }
+        
+        .btn-cancel:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+        
+        /* Alerts */
+        .alert {
+            padding: 1.2rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border-left: 5px solid #10b981;
+        }
+        
+        .alert i {
+            font-size: 1.3rem;
+        }
+        
+        /* Assignments List */
         .assignments-list {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.5rem;
         }
+        
         .assignment-item {
             background: white;
             border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-left: 5px solid #1a365d;
         }
-        .assignment-item h3 {
+        
+        .assignment-item:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        .assignment-info h3 {
             margin: 0 0 0.5rem 0;
             color: #1a365d;
+            font-size: 1.3rem;
+            font-weight: 700;
         }
+        
+        .assignment-info p {
+            color: #718096;
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+        
         .assignment-meta {
             display: flex;
             gap: 1rem;
-            margin: 0.5rem 0;
-            font-size: 0.875rem;
-            color: #718096;
+            margin: 0.75rem 0 0 0;
+            flex-wrap: wrap;
         }
+        
         .assignment-meta span {
             background: #f7fafc;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
+            color: #4a5568;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
         }
+        
         .assignment-actions {
             display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
         }
-        .btn-small {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            border-radius: 6px;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
-        .btn-primary {
-            background-color: #3182ce;
-            color: white;
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
         }
-        .btn-primary:hover {
-            background-color: #2c5aa0;
+        
+        .empty-state p {
+            color: #718096;
+            font-size: 1.1rem;
+            margin: 1rem 0;
         }
-        .btn-danger {
-            background-color: #e53e3e;
-            color: white;
-        }
-        .btn-danger:hover {
-            background-color: #c53030;
-        }
-        .btn-success {
-            background-color: #48bb78;
-            color: white;
-        }
-        .btn-success:hover {
-            background-color: #38a169;
-        }
+        
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
         }
+        
         .modal.show {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            animation: fadeIn 0.3s ease;
         }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
         .modal-content {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 12px;
-            max-width: 800px;
-            width: 90%;
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            max-width: 700px;
+            width: 100%;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            margin: 0;
+            animation: slideUp 0.3s ease;
         }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-content h2 {
+            margin: 0 0 1.5rem 0;
+            color: #1a365d;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
+        
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.6rem;
             font-weight: 600;
-            color: #1a365d;
+            color: #2d3748;
+            font-size: 0.95rem;
         }
+        
+        .form-group label .required {
+            color: #ef4444;
+        }
+        
         .form-group input,
-        .form-group textarea,
-        .form-group select {
+        .form-group select,
+        .form-group textarea {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 1rem;
+            padding: 0.85rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
         }
+        
         .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
-            border-color: #3182ce;
-            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            border-color: #1a365d;
+            box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
         }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
         .form-group small {
+            display: block;
             color: #718096;
-            font-size: 0.875rem;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
         }
+        
         .question-form {
+            background: #f7fafc;
             border: 1px solid #e2e8f0;
-            padding: 1rem;
+            padding: 1.5rem;
             margin: 1rem 0;
             border-radius: 8px;
-            background: #f7fafc;
         }
-        .breadcrumb {
-            background: #f7fafc;
-            padding: 1rem;
+        
+        .question-form h4 {
+            color: #1a365d;
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .form-actions button,
+        .form-actions a {
+            flex: 1;
+            padding: 0.9rem 1.5rem;
+            border: none;
             border-radius: 8px;
-            margin-bottom: 1.5rem;
-            font-size: 0.875rem;
-            color: #4a5568;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-        .breadcrumb a {
-            color: #3182ce;
-            text-decoration: none;
+        
+        .form-actions .btn-primary {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(26, 54, 93, 0.25);
         }
-        .breadcrumb a:hover {
-            text-decoration: underline;
+        
+        .form-actions .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(26, 54, 93, 0.35);
+        }
+        
+        .form-actions .btn-cancel {
+            background: #f0f4f8;
+            color: #2d3748;
+            border: 1.5px solid #e2e8f0;
+        }
+        
+        .form-actions .btn-cancel:hover {
+            background: #e2e8f0;
+        }
+        
+        .add-question-btn {
+            background: #10b981;
+            color: white;
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .btn-remove {
+            background: #ef4444;
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .page-header-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+            
+            .page-header-actions button,
+            .page-header-actions a {
+                width: 100%;
+            }
+            
+            .assignment-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .assignment-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            
+            .header-nav {
+                gap: 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .admin-container {
+                padding: 1rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .form-actions button,
+            .form-actions a {
+                flex: 1 !important;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Professional Header -->
+    <header class="admin-header">
+        <div class="header-content">
+            <a href="../../index.php" class="header-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>NT2 Learning Platform</span>
+            </a>
+            <nav class="header-nav">
+                <a href="../dashboard/dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="../courses/manage_courses.php"><i class="fas fa-book"></i> Courses</a>
+                <a href="../auth/logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
     <div class="admin-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-content">
+                <a href="../courses/manage_lessons.php?module_id=<?= $lesson['module_id'] ?>">
+                    <i class="fas fa-chevron-left"></i> Back to Lessons
+                </a>
+                <h1><i class="fas fa-tasks"></i> Assignments: <?= htmlspecialchars($lesson['title']) ?></h1>
+            </div>
+            <div class="page-header-actions">
+                <a href="create_assignment.php?lesson_id=<?= $lesson_id ?>" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Assignment
+                </a>
+            </div>
+        </div>
+        
+        <!-- Alerts -->
         <?php if (isset($_GET['success'])): ?>
-            <div style="background-color: #c6f6d5; color: #22543d; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                ✅ <?= htmlspecialchars($_GET['success']) ?>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <span><?= htmlspecialchars($_GET['success']) ?></span>
             </div>
         <?php endif; ?>
         
-        <!-- Breadcrumb -->
-        <div class="breadcrumb">
-            <a href="../dashboard/dashboard.php">Dashboard</a> → 
-            <a href="../courses/manage_courses.php">Courses</a> → 
-            <a href="../courses/manage_modules.php?course_id=<?= $lesson['course_id'] ?? '' ?>">Modules</a> → 
-            <a href="../courses/manage_lessons.php?module_id=<?= $lesson['module_id'] ?>">Lessons</a> → 
-            <strong>Assignments</strong>
-        </div>
-        
-        <div class="page-header">
-            <a href="../courses/manage_lessons.php?module_id=<?= $lesson['module_id'] ?>">← Back to Lessons</a>
-            <h1>📝 Assignments: <?= htmlspecialchars($lesson['title']) ?></h1>
-            <div style="display: flex; gap: 0.5rem;">
-                <button onclick="openCreateModal()" class="btn btn-primary">+ New Assignment</button>
-                <a href="../courses/upload_video.php" class="btn btn-small" style="background-color: #10b981; color: white;">🎥 Upload Video</a>
-            </div>
-        </div>
-        
+        <!-- Assignments List -->
         <div class="assignments-list">
             <?php if (empty($assignments)): ?>
-                <div class="assignment-item" style="text-align: center; padding: 3rem;">
-                    <h3>No assignments yet</h3>
-                    <p>Create your first assignment for this lesson.</p>
-                    <button onclick="openCreateModal()" class="btn btn-primary">+ Create First Assignment</button>
+                <div class="empty-state">
+                    <i class="fas fa-clipboard"></i>
+                    <p>No assignments created yet.</p>
+                    <p style="color: #a0aec0; font-size: 0.95rem;">Click the "New Assignment" button to get started.</p>
                 </div>
             <?php else: ?>
                 <?php foreach ($assignments as $assignment): ?>
                     <div class="assignment-item">
-                        <h3><?= htmlspecialchars($assignment['title']) ?></h3>
-                        <p><?= htmlspecialchars($assignment['description']) ?></p>
-                        <div class="assignment-meta">
-                            <span>📋 Type: <?= ucfirst(str_replace('_', ' ', $assignment['type'])) ?></span>
-                            <span>⭐ Points: <?= $assignment['points'] ?></span>
-                            <span><?= $assignment['is_required'] ? '🔒 Required' : '📝 Optional' ?></span>
+                        <div class="assignment-info">
+                            <h3><?= htmlspecialchars($assignment['title']) ?></h3>
+                            <p><?= htmlspecialchars(substr($assignment['description'], 0, 150)) ?><?= strlen($assignment['description']) > 150 ? '...' : '' ?></p>
+                            <div class="assignment-meta">
+                                <span><i class="fas fa-list"></i> <?= ucfirst(str_replace('_', ' ', $assignment['type'])) ?></span>
+                                <span><i class="fas fa-star"></i> <?= $assignment['points'] ?> points</span>
+                                <span><?= $assignment['is_required'] ? '<i class="fas fa-lock"></i> Required' : '<i class="fas fa-file-alt"></i> Optional' ?></span>
+                            </div>
                         </div>
                         <div class="assignment-actions">
-                            <a href="view_submissions.php?assignment_id=<?= $assignment['id'] ?>" class="btn btn-small btn-success">📊 View Submissions</a>
-                            <button onclick="openEditModal(<?= $assignment['id'] ?>)" class="btn btn-small btn-primary">✏️ Edit</button>
-                            <a href="manage_assignments.php?lesson_id=<?= $lesson_id ?>&delete=<?= $assignment['id'] ?>" class="btn btn-small btn-danger" onclick="return confirm('Are you sure you want to delete this assignment?')">🗑️ Delete</a>
+                            <a href="view_submissions.php?assignment_id=<?= $assignment['id'] ?>" class="btn btn-secondary btn-small">
+                                <i class="fas fa-chart-bar"></i> Submissions
+                            </a>
+                            <a href="edit_assignment.php?assignment_id=<?= $assignment['id'] ?>" class="btn btn-primary btn-small">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="?lesson_id=<?= $lesson_id ?>&delete=<?= $assignment['id'] ?>" class="btn btn-danger btn-small" onclick="return confirm('Are you sure you want to delete this assignment?')">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </a>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -352,392 +667,9 @@ foreach ($assignments as $assignment) {
         </div>
     </div>
     
-    <!-- Create Assignment Modal -->
-    <div id="createModal" class="modal">
-        <div class="modal-content">
-            <h2>📝 Create New Assignment</h2>
-            <form method="POST" id="assignmentForm">
-                <div class="form-group">
-                    <label>Assignment Title *</label>
-                    <input type="text" name="title" required placeholder="e.g., Vocabulary Quiz">
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" placeholder="Describe what students need to do..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Assignment Type</label>
-                    <select name="type" id="assignmentType">
-                        <option value="multiple_choice">📋 Multiple Choice</option>
-                        <option value="fill_in">✏️ Fill in the Blank</option>
-                        <option value="essay">📝 Essay</option>
-                        <option value="file_upload">📎 File Upload</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Points</label>
-                    <input type="number" name="points" value="10" min="1" max="100">
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" name="is_required" checked> 🔒 Required Assignment
-                    </label>
-                </div>
-                
-                <div id="questionsContainer">
-                    <h3>📝 Questions</h3>
-                    <div id="questionsList"></div>
-                    <button type="button" onclick="addQuestion()" class="btn btn-small" style="background-color: #48bb78; color: white;">+ Add Question</button>
-                </div>
-                
-                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                    <button type="submit" name="create_assignment" class="btn btn-primary">✅ Create Assignment</button>
-                    <button type="button" onclick="closeCreateModal()" class="btn">❌ Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Edit Assignment Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <h2>✏️ Edit Assignment</h2>
-            <form method="POST">
-                <input type="hidden" name="assignment_id" id="edit_assignment_id">
-                <div class="form-group">
-                    <label>Assignment Title *</label>
-                    <input type="text" name="title" id="edit_title" required>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" id="edit_description"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Assignment Type</label>
-                    <select name="type" id="edit_type">
-                        <option value="multiple_choice">📋 Multiple Choice</option>
-                        <option value="fill_in">✏️ Fill in the Blank</option>
-                        <option value="essay">📝 Essay</option>
-                        <option value="file_upload">📎 File Upload</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Points</label>
-                    <input type="number" name="points" id="edit_points" min="1" max="100">
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" name="is_required" id="edit_is_required"> 🔒 Required Assignment
-                    </label>
-                </div>
-                
-                <div id="editQuestionsContainer">
-                    <h3>📝 Questions</h3>
-                    <div id="editQuestionsList"></div>
-                    <button type="button" onclick="addEditQuestion()" class="btn btn-small" style="background-color: #48bb78; color: white;">+ Add Question</button>
-                </div>
-                
-                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                    <button type="submit" name="update_assignment" class="btn btn-primary">💾 Update Assignment</button>
-                    <button type="button" onclick="closeEditModal()" class="btn">❌ Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
     <script>
-        let questionCount = 0;
-        
-        function addQuestion() {
-            questionCount++;
-            const type = document.getElementById('assignmentType').value;
-            const html = `
-                <div class="question-form">
-                    <h4>📝 Question ${questionCount}</h4>
-                    <div class="form-group">
-                        <label>Question Text *</label>
-                        <textarea name="questions[${questionCount}][text]" required placeholder="Enter your question here..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Question Type</label>
-                        <select name="questions[${questionCount}][type]" onchange="updateQuestionType(${questionCount}, this.value)">
-                            <option value="multiple_choice">📋 Multiple Choice</option>
-                            <option value="fill_in">✏️ Fill in the Blank</option>
-                            <option value="essay">📝 Essay</option>
-                            <option value="file_upload">📎 File Upload</option>
-                        </select>
-                    </div>
-                    <div id="question-${questionCount}-options"></div>
-                    <div class="form-group">
-                        <label>Points</label>
-                        <input type="number" name="questions[${questionCount}][points]" value="1" min="1">
-                    </div>
-                    <input type="hidden" name="questions[${questionCount}][order]" value="${questionCount}">
-                    <button type="button" onclick="removeQuestion(${questionCount})" class="btn btn-small btn-danger" style="margin-top: 0.5rem;">🗑️ Remove Question</button>
-                </div>
-            `;
-            document.getElementById('questionsList').insertAdjacentHTML('beforeend', html);
-            updateQuestionType(questionCount, 'multiple_choice');
-        }
-        
-        function removeQuestion(qid) {
-            const questionElement = document.querySelector(`#question-${qid}-options`).closest('.question-form');
-            questionElement.remove();
-        }
-        
-        function updateQuestionType(qid, type) {
-            const container = document.getElementById(`question-${qid}-options`);
-            if (type === 'multiple_choice') {
-                container.innerHTML = `
-                    <div class="form-group">
-                        <label>📋 Options (one per line)</label>
-                        <textarea name="questions[${qid}][options_text]" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>✅ Correct Answer</label>
-                        <input type="text" name="questions[${qid}][correct]" required placeholder="e.g., Option A">
-                    </div>
-                `;
-            } else if (type === 'fill_in') {
-                container.innerHTML = `
-                    <div class="form-group">
-                        <label>✅ Correct Answer</label>
-                        <input type="text" name="questions[${qid}][correct]" required placeholder="The correct answer">
-                    </div>
-                `;
-            } else {
-                container.innerHTML = '';
-            }
-        }
-        
-        document.getElementById('assignmentForm').addEventListener('submit', function(e) {
-            // Convert options text to JSON array
-            const optionsTexts = document.querySelectorAll('[name$="[options_text]"]');
-            optionsTexts.forEach(function(el) {
-                const qid = el.name.match(/\[(\d+)\]/)[1];
-                const options = el.value.split('\n').filter(o => o.trim());
-                const correctAnswer = document.querySelector(`[name="questions[${qid}][correct]"]`).value;
-                
-                // Create hidden input with JSON options
-                const jsonInput = document.createElement('input');
-                jsonInput.type = 'hidden';
-                jsonInput.name = `questions[${qid}][options]`;
-                jsonInput.value = JSON.stringify(options);
-                el.parentNode.appendChild(jsonInput);
-            });
-        });
-        
-         // Handle edit form submission
-         document.querySelector('#editModal form').addEventListener('submit', function(e) {
-             console.log('Edit form submitting...');
-             
-             // Convert options text to JSON array for edit form
-             const optionsTexts = document.querySelectorAll('#editModal [name$="[options_text]"]');
-             console.log('Found options texts:', optionsTexts.length);
-             
-             optionsTexts.forEach(function(el) {
-                 const qid = el.name.match(/\[(\d+)\]/)[1];
-                 const options = el.value.split('\n').filter(o => o.trim());
-                 console.log(`Question ${qid} options:`, options);
-                 
-                 // Create hidden input with JSON options
-                 const jsonInput = document.createElement('input');
-                 jsonInput.type = 'hidden';
-                 jsonInput.name = `questions[${qid}][options]`;
-                 jsonInput.value = JSON.stringify(options);
-                 el.parentNode.appendChild(jsonInput);
-                 
-                 console.log(`Added hidden input for question ${qid}:`, jsonInput.value);
-             });
-             
-             // Also handle correct answers
-             const correctAnswers = document.querySelectorAll('#editModal [name$="[correct]"]');
-             correctAnswers.forEach(function(el) {
-                 const qid = el.name.match(/\[(\d+)\]/)[1];
-                 const correctAnswer = el.value;
-                 console.log(`Question ${qid} correct answer:`, correctAnswer);
-                 
-                 // Ensure correct answer is set
-                 if (!correctAnswer.trim()) {
-                     alert('Please fill in the correct answer for all questions');
-                     e.preventDefault();
-                     return false;
-                 }
-             });
-             
-             // Debug: Log all form data
-             const formData = new FormData(this);
-             console.log('Form data being submitted:');
-             for (let [key, value] of formData.entries()) {
-                 console.log(key, ':', value);
-             }
-         });
-        
-        function openCreateModal() {
-            document.getElementById('createModal').classList.add('show');
-        }
-        function closeCreateModal() {
-            document.getElementById('createModal').classList.remove('show');
-            // Reset form
-            document.getElementById('assignmentForm').reset();
-            document.getElementById('questionsList').innerHTML = '';
-            questionCount = 0;
-        }
-        
-        function openEditModal(assignmentId) {
-            // Get assignment data from the button
-            const button = event.target;
-            const assignmentItem = button.closest('.assignment-item');
-            const title = assignmentItem.querySelector('h3').textContent;
-            const description = assignmentItem.querySelector('p').textContent;
-            
-            // Extract type and points from meta spans
-            const metaSpans = assignmentItem.querySelectorAll('.assignment-meta span');
-            let type = 'multiple_choice';
-            let points = 10;
-            let isRequired = false;
-            
-            metaSpans.forEach(span => {
-                if (span.textContent.includes('Type:')) {
-                    type = span.textContent.replace('📋 Type: ', '').toLowerCase().replace(' ', '_');
-                }
-                if (span.textContent.includes('Points:')) {
-                    points = parseInt(span.textContent.replace('⭐ Points: ', ''));
-                }
-                if (span.textContent.includes('Required')) {
-                    isRequired = true;
-                }
-            });
-            
-            // Populate edit form
-            document.getElementById('edit_assignment_id').value = assignmentId;
-            document.getElementById('edit_title').value = title;
-            document.getElementById('edit_description').value = description;
-            document.getElementById('edit_type').value = type;
-            document.getElementById('edit_points').value = points;
-            document.getElementById('edit_is_required').checked = isRequired;
-            
-            // Load existing questions
-            loadEditQuestions(assignmentId);
-            
-            document.getElementById('editModal').classList.add('show');
-        }
-        
-        function closeEditModal() {
-            document.getElementById('editModal').classList.remove('show');
-            // Clear edit questions
-            document.getElementById('editQuestionsList').innerHTML = '';
-            editQuestionCount = 0;
-        }
-        
-        let editQuestionCount = 0;
-        
-        function loadEditQuestions(assignmentId) {
-            // Get questions from PHP data
-            const questions = <?= json_encode($assignment_questions) ?>;
-            const assignmentQuestions = questions[assignmentId] || [];
-            
-            // Clear existing questions
-            document.getElementById('editQuestionsList').innerHTML = '';
-            editQuestionCount = 0;
-            
-            // Add each existing question
-            assignmentQuestions.forEach(question => {
-                addEditQuestion(question);
-            });
-        }
-        
-        function addEditQuestion(existingQuestion = null) {
-            editQuestionCount++;
-            const qid = editQuestionCount;
-            
-            let questionText = '';
-            let questionType = 'multiple_choice';
-            let correctAnswer = '';
-            let optionsText = '';
-            let points = 1;
-            
-            if (existingQuestion) {
-                questionText = existingQuestion.question_text || '';
-                questionType = existingQuestion.question_type || 'multiple_choice';
-                correctAnswer = existingQuestion.correct_answer || '';
-                points = existingQuestion.points || 1;
-                
-                if (existingQuestion.options && Array.isArray(existingQuestion.options)) {
-                    optionsText = existingQuestion.options.join('\n');
-                }
-            }
-            
-            const html = `
-                <div class="question-form">
-                    <h4>📝 Question ${qid}</h4>
-                    <div class="form-group">
-                        <label>Question Text *</label>
-                        <textarea name="questions[${qid}][text]" required placeholder="Enter your question here...">${questionText}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Question Type</label>
-                        <select name="questions[${qid}][type]" onchange="updateEditQuestionType(${qid}, this.value)">
-                            <option value="multiple_choice" ${questionType === 'multiple_choice' ? 'selected' : ''}>📋 Multiple Choice</option>
-                            <option value="fill_in" ${questionType === 'fill_in' ? 'selected' : ''}>✏️ Fill in the Blank</option>
-                            <option value="essay" ${questionType === 'essay' ? 'selected' : ''}>📝 Essay</option>
-                            <option value="file_upload" ${questionType === 'file_upload' ? 'selected' : ''}>📎 File Upload</option>
-                        </select>
-                    </div>
-                    <div id="edit-question-${qid}-options"></div>
-                    <div class="form-group">
-                        <label>Points</label>
-                        <input type="number" name="questions[${qid}][points]" value="${points}" min="1">
-                    </div>
-                    <input type="hidden" name="questions[${qid}][order]" value="${qid}">
-                    <button type="button" onclick="removeEditQuestion(${qid})" class="btn btn-small btn-danger" style="margin-top: 0.5rem;">🗑️ Remove Question</button>
-                </div>
-            `;
-            document.getElementById('editQuestionsList').insertAdjacentHTML('beforeend', html);
-            updateEditQuestionType(qid, questionType, correctAnswer, optionsText);
-        }
-        
-        function removeEditQuestion(qid) {
-            const questionElement = document.querySelector(`#edit-question-${qid}-options`).closest('.question-form');
-            questionElement.remove();
-        }
-        
-        function updateEditQuestionType(qid, type, correctAnswer = '', optionsText = '') {
-            const container = document.getElementById(`edit-question-${qid}-options`);
-            if (type === 'multiple_choice') {
-                container.innerHTML = `
-                    <div class="form-group">
-                        <label>📋 Options (one per line)</label>
-                        <textarea name="questions[${qid}][options_text]" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D">${optionsText}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>✅ Correct Answer</label>
-                        <input type="text" name="questions[${qid}][correct]" required placeholder="e.g., Option A" value="${correctAnswer}">
-                    </div>
-                `;
-            } else if (type === 'fill_in') {
-                container.innerHTML = `
-                    <div class="form-group">
-                        <label>✅ Correct Answer</label>
-                        <input type="text" name="questions[${qid}][correct]" required placeholder="The correct answer" value="${correctAnswer}">
-                    </div>
-                `;
-            } else {
-                container.innerHTML = '';
-            }
-        }
-        
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const createModal = document.getElementById('createModal');
-            const editModal = document.getElementById('editModal');
-            if (event.target === createModal) {
-                closeCreateModal();
-            }
-            if (event.target === editModal) {
-                closeEditModal();
-            }
-        }
+        // The modal and question management JavaScript has been removed as per the edit hint.
+        // The assignment creation and editing are now handled by separate pages.
     </script>
 </body>
 </html>
