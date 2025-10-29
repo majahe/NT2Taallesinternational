@@ -88,7 +88,7 @@ $stmt->close();
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -98,31 +98,85 @@ $stmt->close();
         }
         .modal-content {
             background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            max-width: 600px;
+            padding: 2.5rem;
+            border-radius: 16px;
+            max-width: 500px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-content h2 {
+            margin: 0 0 1.5rem 0;
+            color: #1a365d;
+            font-size: 1.5rem;
+            font-weight: 700;
         }
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.6rem;
             font-weight: 600;
+            color: #2d3748;
+            font-size: 0.95rem;
         }
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
+            padding: 0.85rem;
+            border: 1.5px solid #e2e8f0;
             border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1a365d;
+            box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
         }
         .form-group textarea {
-            min-height: 100px;
+            min-height: 120px;
+            resize: vertical;
+        }
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .form-actions button {
+            flex: 1;
+            padding: 0.9rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .form-actions .btn-primary {
+            background: #1a365d;
+            color: white;
+        }
+        .form-actions .btn-primary:hover {
+            background: #0f2444;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(26, 54, 93, 0.2);
+        }
+        .form-actions .btn-cancel {
+            background: #f0f4f8;
+            color: #2d3748;
+            border: 1.5px solid #e2e8f0;
+        }
+        .form-actions .btn-cancel:hover {
+            background: #e2e8f0;
         }
     </style>
 </head>
@@ -167,9 +221,9 @@ $stmt->close();
                     <label>Order Index</label>
                     <input type="number" name="order_index" value="0">
                 </div>
-                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <div class="form-actions">
                     <button type="submit" name="create_module" class="btn btn-primary">Create Module</button>
-                    <button type="button" onclick="closeCreateModal()" class="btn">Cancel</button>
+                    <button type="button" onclick="closeCreateModal()" class="btn btn-cancel">Cancel</button>
                 </div>
             </form>
         </div>
