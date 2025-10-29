@@ -144,7 +144,7 @@ $stmt->close();
             border: 1px solid #fca5a5;
         }
         .modal {
-            display: none !important;
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -157,6 +157,8 @@ $stmt->close();
         }
         .modal.show {
             display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
         .modal-content {
             background: white;
