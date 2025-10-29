@@ -112,71 +112,71 @@ $stmt->close();
             font-size: 1.5rem;
             font-weight: 700;
         }
-        .form-group {
-            margin-bottom: 1.5rem;
+        .modal .form-group {
+            margin-bottom: 1.5rem !important;
         }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.6rem;
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 0.95rem;
+        .modal .form-group label {
+            display: block !important;
+            margin-bottom: 0.6rem !important;
+            font-weight: 600 !important;
+            color: #2d3748 !important;
+            font-size: 0.95rem !important;
         }
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.85rem;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-family: inherit;
-            transition: border-color 0.3s ease;
+        .modal .form-group input,
+        .modal .form-group select,
+        .modal .form-group textarea {
+            width: 100% !important;
+            padding: 0.85rem !important;
+            border: 1.5px solid #e2e8f0 !important;
+            border-radius: 8px !important;
+            font-size: 0.95rem !important;
+            font-family: inherit !important;
+            transition: border-color 0.3s ease !important;
         }
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #1a365d;
-            box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+        .modal .form-group input:focus,
+        .modal .form-group select:focus,
+        .modal .form-group textarea:focus {
+            outline: none !important;
+            border-color: #1a365d !important;
+            box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1) !important;
         }
-        .form-group textarea {
-            min-height: 120px;
-            resize: vertical;
+        .modal .form-group textarea {
+            min-height: 120px !important;
+            resize: vertical !important;
         }
         .form-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #e2e8f0;
+            display: flex !important;
+            gap: 1rem !important;
+            margin-top: 2rem !important;
+            padding-top: 1.5rem !important;
+            border-top: 1px solid #e2e8f0 !important;
         }
         .form-actions button {
-            flex: 1;
-            padding: 0.9rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            flex: 1 !important;
+            padding: 0.9rem 1.5rem !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            font-size: 0.95rem !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
         }
         .form-actions .btn-primary {
-            background: #1a365d;
-            color: white;
+            background: #1a365d !important;
+            color: white !important;
         }
         .form-actions .btn-primary:hover {
-            background: #0f2444;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(26, 54, 93, 0.2);
+            background: #0f2444 !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 16px rgba(26, 54, 93, 0.2) !important;
         }
         .form-actions .btn-cancel {
-            background: #f0f4f8;
-            color: #2d3748;
-            border: 1.5px solid #e2e8f0;
+            background: #f0f4f8 !important;
+            color: #2d3748 !important;
+            border: 1.5px solid #e2e8f0 !important;
         }
         .form-actions .btn-cancel:hover {
-            background: #e2e8f0;
+            background: #e2e8f0 !important;
         }
     </style>
 </head>
