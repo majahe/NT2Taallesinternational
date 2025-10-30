@@ -1,41 +1,53 @@
 <?php
-require_once __DIR__ . '/../../includes/admin_auth.php';
-require_admin_auth();
+session_start();
+if (!isset($_SESSION['admin'])) {
+    header("Location: ../auth/index.php");
+    exit;
+}
 
 include '../../includes/db_connect.php';
-require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
-$db = new QueryBuilder($conn);
 
-$lesson_id = intval($_GET['lesson_id'] ?? 0);
+$assignment_id = intval($_GET['assignment_id'] ?? 0);
 
-if ($lesson_id <= 0) {
+if ($assignment_id <= 0) {
     header("Location: manage_assignments.php");
     exit;
 }
 
-// Get lesson info
+// Get assignment info with lesson details
 $stmt = $conn->prepare("
-    SELECT l.*, m.id as module_id, m.course_id, m.title as module_title, c.title as course_title
-    FROM lessons l
+    SELECT a.*, l.id as lesson_id, l.title as lesson_title, m.id as module_id
+    FROM assignments a
+    JOIN lessons l ON a.lesson_id = l.id
     JOIN course_modules m ON l.module_id = m.id
-    JOIN courses c ON m.course_id = c.id
-    WHERE l.id = ?
+    WHERE a.id = ?
 ");
-$stmt->bind_param("i", $lesson_id);
+$stmt->bind_param("i", $assignment_id);
 $stmt->execute();
-$lesson = $stmt->get_result()->fetch_assoc();
+$assignment = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-if (!$lesson) {
+if (!$assignment) {
     header("Location: manage_assignments.php");
     exit;
 }
 
-// Handle assignment creation
-require_once __DIR__ . '/../../includes/csrf.php';
-    CSRF::requireToken();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_assignment'])) {
+// Get assignment questions
+$stmt = $conn->prepare("SELECT * FROM assignment_questions WHERE assignment_id = ? ORDER BY order_index");
+$stmt->bind_param("i", $assignment_id);
+$stmt->execute();
+$questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Decode JSON options
+foreach ($questions as &$question) {
+    if ($question['options']) {
+        $question['options'] = json_decode($question['options'], true);
+    }
+}
+
+// Handle assignment update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_assignment'])) {
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';
     $type = $_POST['type'] ?? 'multiple_choice';
@@ -45,13 +57,18 @@ require_once __DIR__ . '/../../includes/csrf.php';
     if (empty($title)) {
         $error = "Assignment title is required";
     } else {
-        $stmt = $conn->prepare("INSERT INTO assignments (lesson_id, title, description, type, points, is_required) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isssii", $lesson_id, $title, $description, $type, $points, $is_required);
+        $stmt = $conn->prepare("UPDATE assignments SET title=?, description=?, type=?, points=?, is_required=? WHERE id=?");
+        $stmt->bind_param("sssiiii", $title, $description, $type, $points, $is_required, $assignment_id);
         if ($stmt->execute()) {
-            $assignment_id = $conn->insert_id;
             $stmt->close();
             
-            // Add questions
+            // Delete existing questions
+            $stmt = $conn->prepare("DELETE FROM assignment_questions WHERE assignment_id = ?");
+            $stmt->bind_param("i", $assignment_id);
+            $stmt->execute();
+            $stmt->close();
+            
+            // Add updated questions
             if (isset($_POST['questions']) && is_array($_POST['questions'])) {
                 foreach ($_POST['questions'] as $qdata) {
                     $question_text = $qdata['text'] ?? '';
@@ -68,10 +85,10 @@ require_once __DIR__ . '/../../includes/csrf.php';
                 }
             }
             
-            header("Location: manage_assignments.php?lesson_id=" . $lesson_id . "&success=Assignment created successfully");
+            header("Location: manage_assignments.php?lesson_id=" . $assignment['lesson_id'] . "&success=Assignment updated successfully");
             exit;
         } else {
-            $error = "Error creating assignment: " . $stmt->error;
+            $error = "Error updating assignment: " . $stmt->error;
             $stmt->close();
         }
     }
@@ -82,7 +99,7 @@ require_once __DIR__ . '/../../includes/csrf.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Assignment - <?= htmlspecialchars($lesson['title']) ?></title>
+    <title>Edit Assignment - <?= htmlspecialchars($assignment['title']) ?></title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -201,8 +218,8 @@ require_once __DIR__ . '/../../includes/csrf.php';
             font-weight: 700;
         }
         
-        /* Create Form */
-        .create-form {
+        /* Edit Form */
+        .edit-form {
             background: white;
             padding: 2.5rem;
             border-radius: 16px;
@@ -320,13 +337,13 @@ require_once __DIR__ . '/../../includes/csrf.php';
         }
         
         .btn-cancel {
-            background: white;
+            background: rgb(3, 161, 252);
             color: #2d3748;
             border: 1.5px solid #e2e8f0;
         }
         
         .btn-cancel:hover {
-            background: #f7fafc;
+            background:rgb(3, 161, 252);
             border-color: #cbd5e0;
         }
         
@@ -433,10 +450,10 @@ require_once __DIR__ . '/../../includes/csrf.php';
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-content">
-                <a href="manage_assignments.php?lesson_id=<?= $lesson_id ?>">
+                <a href="manage_assignments.php?lesson_id=<?= $assignment['lesson_id'] ?>">
                     <i class="fas fa-chevron-left"></i> Back to Assignments
                 </a>
-                <h1><i class="fas fa-clipboard-list"></i> Create New Assignment</h1>
+                <h1><i class="fas fa-edit"></i> Edit Assignment</h1>
             </div>
         </div>
         
@@ -448,37 +465,37 @@ require_once __DIR__ . '/../../includes/csrf.php';
             </div>
         <?php endif; ?>
         
-        <!-- Create Form -->
-        <div class="create-form">
+        <!-- Edit Form -->
+        <div class="edit-form">
             <form method="POST" id="assignmentForm">
                 <div class="form-group">
                     <label><i class="fas fa-heading"></i> Assignment Title <span class="required">*</span></label>
-                    <input type="text" name="title" placeholder="e.g., Vocabulary Quiz" required>
+                    <input type="text" name="title" value="<?= htmlspecialchars($assignment['title']) ?>" placeholder="e.g., Vocabulary Quiz" required>
                 </div>
                 
                 <div class="form-group">
                     <label><i class="fas fa-align-left"></i> Description</label>
-                    <textarea name="description" placeholder="Describe what students need to do..."></textarea>
+                    <textarea name="description" placeholder="Describe what students need to do..."><?= htmlspecialchars($assignment['description']) ?></textarea>
                 </div>
                 
                 <div class="form-group">
                     <label><i class="fas fa-list"></i> Assignment Type</label>
                     <select name="type" id="assignmentType">
-                        <option value="multiple_choice">Multiple Choice</option>
-                        <option value="fill_in">Fill in the Blank</option>
-                        <option value="essay">Essay</option>
-                        <option value="file_upload">File Upload</option>
+                        <option value="multiple_choice" <?= $assignment['type'] === 'multiple_choice' ? 'selected' : '' ?>>Multiple Choice</option>
+                        <option value="fill_in" <?= $assignment['type'] === 'fill_in' ? 'selected' : '' ?>>Fill in the Blank</option>
+                        <option value="essay" <?= $assignment['type'] === 'essay' ? 'selected' : '' ?>>Essay</option>
+                        <option value="file_upload" <?= $assignment['type'] === 'file_upload' ? 'selected' : '' ?>>File Upload</option>
                     </select>
                 </div>
                 
                 <div class="form-group">
                     <label><i class="fas fa-star"></i> Points</label>
-                    <input type="number" name="points" value="10" min="1" max="100">
+                    <input type="number" name="points" value="<?= $assignment['points'] ?>" min="1" max="100">
                 </div>
                 
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" name="is_required" checked> 
+                        <input type="checkbox" name="is_required" <?= $assignment['is_required'] ? 'checked' : '' ?>> 
                         <i class="fas fa-lock"></i> Required Assignment
                     </label>
                 </div>
@@ -492,10 +509,10 @@ require_once __DIR__ . '/../../includes/csrf.php';
                 </div>
                 
                 <div class="form-actions">
-                    <button type="submit" name="create_assignment" class="btn btn-primary">
-                        <i class="fas fa-check"></i> Create Assignment
+                    <button type="submit" name="update_assignment" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Assignment
                     </button>
-                    <a href="manage_assignments.php?lesson_id=<?= $lesson_id ?>" class="btn btn-cancel">
+                    <a href="manage_assignments.php?lesson_id=<?= $assignment['lesson_id'] ?>" class="btn btn-cancel">
                         <i class="fas fa-times"></i> Cancel
                     </a>
                 </div>
@@ -505,39 +522,64 @@ require_once __DIR__ . '/../../includes/csrf.php';
     
     <script>
         let questionCount = 0;
+        const existingQuestions = <?= json_encode($questions) ?>;
         
-        function addQuestion() {
+        function initializeQuestions() {
+            existingQuestions.forEach(question => {
+                addQuestion(question);
+            });
+        }
+        
+        function addQuestion(existingQuestion = null) {
             questionCount++;
-            const type = document.getElementById('assignmentType').value;
+            const qid = questionCount;
+            
+            let questionText = '';
+            let questionType = 'multiple_choice';
+            let correctAnswer = '';
+            let optionsText = '';
+            let points = 1;
+            
+            if (existingQuestion) {
+                questionText = existingQuestion.question_text || '';
+                questionType = existingQuestion.question_type || 'multiple_choice';
+                correctAnswer = existingQuestion.correct_answer || '';
+                points = existingQuestion.points || 1;
+                
+                if (existingQuestion.options && Array.isArray(existingQuestion.options)) {
+                    optionsText = existingQuestion.options.join('\n');
+                }
+            }
+            
             const html = `
                 <div class="question-form">
-                    <h4><i class="fas fa-question"></i> Question ${questionCount}</h4>
+                    <h4><i class="fas fa-question"></i> Question ${qid}</h4>
                     <div class="form-group">
                         <label>Question Text <span class="required">*</span></label>
-                        <textarea name="questions[${questionCount}][text]" required placeholder="Enter your question here..."></textarea>
+                        <textarea name="questions[${qid}][text]" required placeholder="Enter your question here...">${questionText}</textarea>
                     </div>
                     <div class="form-group">
                         <label>Question Type</label>
-                        <select name="questions[${questionCount}][type]" onchange="updateQuestionType(${questionCount}, this.value)">
-                            <option value="multiple_choice">Multiple Choice</option>
-                            <option value="fill_in">Fill in the Blank</option>
-                            <option value="essay">Essay</option>
-                            <option value="file_upload">File Upload</option>
+                        <select name="questions[${qid}][type]" onchange="updateQuestionType(${qid}, this.value)">
+                            <option value="multiple_choice" ${questionType === 'multiple_choice' ? 'selected' : ''}>Multiple Choice</option>
+                            <option value="fill_in" ${questionType === 'fill_in' ? 'selected' : ''}>Fill in the Blank</option>
+                            <option value="essay" ${questionType === 'essay' ? 'selected' : ''}>Essay</option>
+                            <option value="file_upload" ${questionType === 'file_upload' ? 'selected' : ''}>File Upload</option>
                         </select>
                     </div>
-                    <div id="question-${questionCount}-options"></div>
+                    <div id="question-${qid}-options"></div>
                     <div class="form-group">
                         <label><i class="fas fa-star"></i> Points</label>
-                        <input type="number" name="questions[${questionCount}][points]" value="1" min="1">
+                        <input type="number" name="questions[${qid}][points]" value="${points}" min="1">
                     </div>
-                    <input type="hidden" name="questions[${questionCount}][order]" value="${questionCount}">
-                    <button type="button" onclick="removeQuestion(${questionCount})" class="btn btn-remove">
+                    <input type="hidden" name="questions[${qid}][order]" value="${qid}">
+                    <button type="button" onclick="removeQuestion(${qid})" class="btn btn-remove">
                         <i class="fas fa-trash-alt"></i> Remove
                     </button>
                 </div>
             `;
             document.getElementById('questionsList').insertAdjacentHTML('beforeend', html);
-            updateQuestionType(questionCount, 'multiple_choice');
+            updateQuestionType(qid, questionType, correctAnswer, optionsText);
         }
         
         function removeQuestion(qid) {
@@ -545,24 +587,24 @@ require_once __DIR__ . '/../../includes/csrf.php';
             questionElement.remove();
         }
         
-        function updateQuestionType(qid, type) {
+        function updateQuestionType(qid, type, correctAnswer = '', optionsText = '') {
             const container = document.getElementById(`question-${qid}-options`);
             if (type === 'multiple_choice') {
                 container.innerHTML = `
                     <div class="form-group">
                         <label>Options (one per line)</label>
-                        <textarea name="questions[${qid}][options_text]" rows="3" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea>
+                        <textarea name="questions[${qid}][options_text]" rows="3" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D">${optionsText}</textarea>
                     </div>
                     <div class="form-group">
                         <label>Correct Answer</label>
-                        <input type="text" name="questions[${qid}][correct]" required placeholder="e.g., Option A">
+                        <input type="text" name="questions[${qid}][correct]" required placeholder="e.g., Option A" value="${correctAnswer}">
                     </div>
                 `;
             } else if (type === 'fill_in') {
                 container.innerHTML = `
                     <div class="form-group">
                         <label>Correct Answer</label>
-                        <input type="text" name="questions[${qid}][correct]" required placeholder="The correct answer">
+                        <input type="text" name="questions[${qid}][correct]" required placeholder="The correct answer" value="${correctAnswer}">
                     </div>
                 `;
             } else {
@@ -582,6 +624,9 @@ require_once __DIR__ . '/../../includes/csrf.php';
                 el.parentNode.appendChild(jsonInput);
             });
         });
+        
+        // Initialize existing questions
+        window.addEventListener('DOMContentLoaded', initializeQuestions);
     </script>
 </body>
 </html>

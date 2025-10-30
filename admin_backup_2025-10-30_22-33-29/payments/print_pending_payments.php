@@ -1,10 +1,11 @@
 <?php
-require_once __DIR__ . '/../../includes/admin_auth.php';
-require_admin_auth();
+session_start();
+if (!isset($_SESSION['admin'])) {
+  header("Location: ../auth/index.php");
+  exit;
+}
 
 include '../../includes/db_connect.php';
-require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
-$db = new QueryBuilder($conn);
 
 // Get the print type from the form
 $print_type = isset($_POST['print_type']) ? $_POST['print_type'] : 'All';

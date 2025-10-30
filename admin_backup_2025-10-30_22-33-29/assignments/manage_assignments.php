@@ -1,98 +1,70 @@
 <?php
-require_once __DIR__ . '/../../includes/admin_auth.php';
-require_admin_auth();
+session_start();
+if (!isset($_SESSION['admin'])) {
+    header("Location: ../auth/index.php");
+    exit;
+}
 
 include '../../includes/db_connect.php';
-require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
-$db = new QueryBuilder($conn);
 
-$module_id = intval($_GET['module_id'] ?? 0);
+$lesson_id = intval($_GET['lesson_id'] ?? 0);
 
-if ($module_id <= 0) {
-    header("Location: manage_courses.php");
+if ($lesson_id <= 0) {
+    header("Location: ../courses/manage_courses.php");
     exit;
 }
 
-// Get module and course info
-$stmt = $conn->prepare("
-    SELECT m.*, c.title as course_title 
-    FROM course_modules m 
-    JOIN courses c ON m.course_id = c.id 
-    WHERE m.id = ?
-");
-$stmt->bind_param("i", $module_id);
+// Get lesson info
+$stmt = $conn->prepare("SELECT l.*, m.title as module_title, m.course_id FROM lessons l JOIN course_modules m ON l.module_id = m.id WHERE l.id = ?");
+$stmt->bind_param("i", $lesson_id);
 $stmt->execute();
-$module = $stmt->get_result()->fetch_assoc();
+$lesson = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-// Handle lesson creation
-require_once __DIR__ . '/../../includes/csrf.php';
-    CSRF::requireToken();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_lesson'])) {
-    $title = $_POST['title'] ?? '';
-    $description = $_POST['description'] ?? '';
-    $content = $_POST['content'] ?? '';
-    $video_path = $_POST['video_path'] ?? '';
-    $order_index = intval($_POST['order_index'] ?? 0);
-    $is_preview = isset($_POST['is_preview']) ? 1 : 0;
-    
-    $stmt = $conn->prepare("INSERT INTO lessons (module_id, title, description, content, video_path, order_index, is_preview) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("issssii", $module_id, $title, $description, $content, $video_path, $order_index, $is_preview);
-    $stmt->execute();
-    $stmt->close();
-    
-    header("Location: manage_lessons.php?module_id=" . $module_id . "&success=Lesson created");
-    exit;
-}
-
-// Handle lesson update
-require_once __DIR__ . '/../../includes/csrf.php';
-    CSRF::requireToken();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_lesson'])) {
-    $lesson_id = intval($_POST['lesson_id']);
-    $title = $_POST['title'] ?? '';
-    $description = $_POST['description'] ?? '';
-    $content = $_POST['content'] ?? '';
-    $video_path = $_POST['video_path'] ?? '';
-    $order_index = intval($_POST['order_index'] ?? 0);
-    $is_preview = isset($_POST['is_preview']) ? 1 : 0;
-    
-    $stmt = $conn->prepare("UPDATE lessons SET title=?, description=?, content=?, video_path=?, order_index=?, is_preview=? WHERE id=? AND module_id=?");
-    $stmt->bind_param("ssssiiii", $title, $description, $content, $video_path, $order_index, $is_preview, $lesson_id, $module_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    header("Location: manage_lessons.php?module_id=" . $module_id . "&success=Lesson updated");
-    exit;
-}
-
-// Handle lesson deletion
+// Handle assignment deletion
 if (isset($_GET['delete'])) {
-    $lesson_id = intval($_GET['delete']);
-    $stmt = $conn->prepare("DELETE FROM lessons WHERE id=? AND module_id=?");
-    $stmt->bind_param("ii", $lesson_id, $module_id);
+    $assignment_id = intval($_GET['delete']);
+    $stmt = $conn->prepare("DELETE FROM assignments WHERE id=? AND lesson_id=?");
+    $stmt->bind_param("ii", $assignment_id, $lesson_id);
     $stmt->execute();
     $stmt->close();
     
-    header("Location: manage_lessons.php?module_id=" . $module_id . "&success=Lesson deleted");
+    header("Location: manage_assignments.php?lesson_id=" . $lesson_id . "&success=Assignment deleted");
     exit;
 }
 
-// Get lessons
-$stmt = $conn->prepare("SELECT * FROM lessons WHERE module_id = ? ORDER BY order_index");
-$stmt->bind_param("i", $module_id);
+// Get assignments
+$stmt = $conn->prepare("SELECT * FROM assignments WHERE lesson_id = ?");
+$stmt->bind_param("i", $lesson_id);
 $stmt->execute();
-$lessons = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$assignments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Get questions for each assignment (for editing)
+$assignment_questions = [];
+foreach ($assignments as $assignment) {
+    $stmt = $conn->prepare("SELECT * FROM assignment_questions WHERE assignment_id = ? ORDER BY order_index");
+    $stmt->bind_param("i", $assignment['id']);
+    $stmt->execute();
+    $questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    
+    // Decode JSON options for each question
+    foreach ($questions as &$question) {
+        if ($question['options']) {
+            $question['options'] = json_decode($question['options'], true);
+        }
+    }
+    
+    $assignment_questions[$assignment['id']] = $questions;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Lessons - <?= htmlspecialchars($module['title']) ?></title>
+    <title>Manage Assignments - <?= htmlspecialchars($lesson['title']) ?></title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -238,13 +210,20 @@ $stmt->close();
             box-shadow: 0 6px 16px rgba(26, 54, 93, 0.35);
         }
         
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-        
         .btn-small {
             padding: 0.6rem 1.2rem;
             font-size: 0.85rem;
+        }
+        
+        .btn-secondary {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
         }
         
         .btn-danger {
@@ -298,24 +277,18 @@ $stmt->close();
             border-left: 5px solid #10b981;
         }
         
-        .alert-error {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            color: #991b1b;
-            border-left: 5px solid #ef4444;
-        }
-        
         .alert i {
             font-size: 1.3rem;
         }
         
-        /* Lessons List */
-        .lessons-list {
+        /* Assignments List */
+        .assignments-list {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
         }
         
-        .lesson-item {
+        .assignment-item {
             background: white;
             border-radius: 12px;
             padding: 2rem;
@@ -327,32 +300,40 @@ $stmt->close();
             border-left: 5px solid #1a365d;
         }
         
-        .lesson-item:hover {
+        .assignment-item:hover {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
             transform: translateY(-2px);
         }
         
-        .lesson-info h3 {
+        .assignment-info h3 {
             margin: 0 0 0.5rem 0;
             color: #1a365d;
             font-size: 1.3rem;
             font-weight: 700;
         }
         
-        .lesson-info p {
+        .assignment-info p {
             color: #718096;
             margin: 0.5rem 0;
             line-height: 1.6;
         }
         
-        .lesson-info small {
-            color: #a0aec0;
-            display: block;
-            margin-top: 0.5rem;
+        .assignment-meta {
+            display: flex;
+            gap: 1rem;
+            margin: 0.75rem 0 0 0;
+            flex-wrap: wrap;
+        }
+        
+        .assignment-meta span {
+            background: #f7fafc;
+            color: #4a5568;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
             font-size: 0.85rem;
         }
         
-        .lesson-actions {
+        .assignment-actions {
             display: flex;
             gap: 0.75rem;
             flex-wrap: wrap;
@@ -415,7 +396,7 @@ $stmt->close();
             background: white;
             padding: 2.5rem;
             border-radius: 16px;
-            max-width: 600px;
+            max-width: 700px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
@@ -444,15 +425,15 @@ $stmt->close();
         }
         
         .form-group {
-            margin-bottom: 1.5rem !important;
+            margin-bottom: 1.5rem;
         }
         
         .form-group label {
-            display: block !important;
-            margin-bottom: 0.6rem !important;
-            font-weight: 600 !important;
-            color: #2d3748 !important;
-            font-size: 0.95rem !important;
+            display: block;
+            margin-bottom: 0.6rem;
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.95rem;
         }
         
         .form-group label .required {
@@ -462,67 +443,103 @@ $stmt->close();
         .form-group input,
         .form-group select,
         .form-group textarea {
-            width: 100% !important;
-            padding: 0.85rem !important;
-            border: 1.5px solid #e2e8f0 !important;
-            border-radius: 8px !important;
-            font-size: 0.95rem !important;
-            font-family: inherit !important;
-            transition: all 0.3s ease !important;
-            box-sizing: border-box !important;
+            width: 100%;
+            padding: 0.85rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
         }
         
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
-            outline: none !important;
-            border-color: #1a365d !important;
-            box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1) !important;
+            outline: none;
+            border-color: #1a365d;
+            box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
         }
         
         .form-group textarea {
-            min-height: 120px !important;
-            resize: vertical !important;
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-group small {
+            display: block;
+            color: #718096;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+        
+        .question-form {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+        }
+        
+        .question-form h4 {
+            color: #1a365d;
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
         }
         
         .form-actions {
-            display: flex !important;
-            gap: 1rem !important;
-            margin-top: 2rem !important;
-            padding-top: 1.5rem !important;
-            border-top: 1px solid #e2e8f0 !important;
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
         }
         
-        .form-actions button {
-            flex: 1 !important;
-            padding: 0.9rem 1.5rem !important;
-            border: none !important;
-            border-radius: 8px !important;
-            font-weight: 600 !important;
-            font-size: 0.95rem !important;
-            cursor: pointer !important;
-            transition: all 0.3s ease !important;
+        .form-actions button,
+        .form-actions a {
+            flex: 1;
+            padding: 0.9rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
         
         .form-actions .btn-primary {
-            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%) !important;
-            color: white !important;
-            box-shadow: 0 4px 12px rgba(26, 54, 93, 0.25) !important;
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(26, 54, 93, 0.25);
         }
         
         .form-actions .btn-primary:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 6px 16px rgba(26, 54, 93, 0.35) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(26, 54, 93, 0.35);
         }
         
         .form-actions .btn-cancel {
-            background: #f0f4f8 !important;
-            color: #2d3748 !important;
-            border: 1.5px solid #e2e8f0 !important;
+            background: #f0f4f8;
+            color: #2d3748;
+            border: 1.5px solid #e2e8f0;
         }
         
         .form-actions .btn-cancel:hover {
-            background: #e2e8f0 !important;
+            background: #e2e8f0;
+        }
+        
+        .add-question-btn {
+            background: #10b981;
+            color: white;
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .btn-remove {
+            background: #ef4444;
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
         }
         
         /* Responsive */
@@ -534,14 +551,20 @@ $stmt->close();
             
             .page-header-actions {
                 width: 100%;
+                flex-direction: column;
             }
             
-            .lesson-item {
+            .page-header-actions button,
+            .page-header-actions a {
+                width: 100%;
+            }
+            
+            .assignment-item {
                 flex-direction: column;
                 align-items: flex-start;
             }
             
-            .lesson-actions {
+            .assignment-actions {
                 width: 100%;
                 justify-content: flex-start;
             }
@@ -553,6 +576,15 @@ $stmt->close();
             
             .admin-container {
                 padding: 1rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .form-actions button,
+            .form-actions a {
+                flex: 1 !important;
             }
         }
     </style>
@@ -567,7 +599,7 @@ $stmt->close();
             </a>
             <nav class="header-nav">
                 <a href="../dashboard/dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
-                <a href="manage_courses.php"><i class="fas fa-book"></i> Courses</a>
+                <a href="../courses/manage_courses.php"><i class="fas fa-book"></i> Courses</a>
                 <a href="../auth/logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </nav>
         </div>
@@ -578,15 +610,15 @@ $stmt->close();
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-content">
-                <a href="manage_modules.php?course_id=<?= $module['course_id'] ?>">
-                    <i class="fas fa-chevron-left"></i> Back to Modules
+                <a href="../courses/manage_lessons.php?module_id=<?= $lesson['module_id'] ?>">
+                    <i class="fas fa-chevron-left"></i> Back to Lessons
                 </a>
-                <h1><i class="fas fa-book"></i> Lessons: <?= htmlspecialchars($module['title']) ?></h1>
+                <h1><i class="fas fa-tasks"></i> Assignments: <?= htmlspecialchars($lesson['title']) ?></h1>
             </div>
             <div class="page-header-actions">
-                <button onclick="openCreateModal()" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> New Lesson
-                </button>
+                <a href="create_assignment.php?lesson_id=<?= $lesson_id ?>" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Assignment
+                </a>
             </div>
         </div>
         
@@ -598,34 +630,35 @@ $stmt->close();
             </div>
         <?php endif; ?>
         
-        <!-- Lessons List -->
-        <div class="lessons-list">
-            <?php if (empty($lessons)): ?>
+        <!-- Assignments List -->
+        <div class="assignments-list">
+            <?php if (empty($assignments)): ?>
                 <div class="empty-state">
-                    <i class="fas fa-book"></i>
-                    <p>No lessons created yet.</p>
-                    <p style="color: #a0aec0; font-size: 0.95rem;">Click the "New Lesson" button to get started.</p>
+                    <i class="fas fa-clipboard"></i>
+                    <p>No assignments created yet.</p>
+                    <p style="color: #a0aec0; font-size: 0.95rem;">Click the "New Assignment" button to get started.</p>
                 </div>
             <?php else: ?>
-                <?php foreach ($lessons as $lesson): ?>
-                    <div class="lesson-item">
-                        <div class="lesson-info">
-                            <h3><?= htmlspecialchars($lesson['title']) ?></h3>
-                            <p><?= htmlspecialchars(substr($lesson['description'], 0, 150)) ?><?= strlen($lesson['description']) > 150 ? '...' : '' ?></p>
-                            <?php if ($lesson['video_path']): ?>
-                                <small><i class="fas fa-video"></i> <?= htmlspecialchars($lesson['video_path']) ?></small>
-                            <?php endif; ?>
-                            <small><i class="fas fa-sort"></i> Order Position: <?= $lesson['order_index'] ?></small>
+                <?php foreach ($assignments as $assignment): ?>
+                    <div class="assignment-item">
+                        <div class="assignment-info">
+                            <h3><?= htmlspecialchars($assignment['title']) ?></h3>
+                            <p><?= htmlspecialchars(substr($assignment['description'], 0, 150)) ?><?= strlen($assignment['description']) > 150 ? '...' : '' ?></p>
+                            <div class="assignment-meta">
+                                <span><i class="fas fa-list"></i> <?= ucfirst(str_replace('_', ' ', $assignment['type'])) ?></span>
+                                <span><i class="fas fa-star"></i> <?= $assignment['points'] ?> points</span>
+                                <span><?= $assignment['is_required'] ? '<i class="fas fa-lock"></i> Required' : '<i class="fas fa-file-alt"></i> Optional' ?></span>
+                            </div>
                         </div>
-                        <div class="lesson-actions">
-                            <a href="edit_lesson.php?lesson_id=<?= $lesson['id'] ?>" class="btn btn-primary btn-small">
+                        <div class="assignment-actions">
+                            <a href="view_submissions.php?assignment_id=<?= $assignment['id'] ?>" class="btn btn-secondary btn-small">
+                                <i class="fas fa-chart-bar"></i> Submissions
+                            </a>
+                            <a href="edit_assignment.php?assignment_id=<?= $assignment['id'] ?>" class="btn btn-primary btn-small">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
-                            <a href="?module_id=<?= $module_id ?>&delete=<?= $lesson['id'] ?>" class="btn btn-danger btn-small" onclick="return confirm('Are you sure you want to delete this lesson?')">
+                            <a href="?lesson_id=<?= $lesson_id ?>&delete=<?= $assignment['id'] ?>" class="btn btn-danger btn-small" onclick="return confirm('Are you sure you want to delete this assignment?')">
                                 <i class="fas fa-trash-alt"></i> Delete
-                            </a>
-                            <a href="../assignments/manage_assignments.php?lesson_id=<?= $lesson['id'] ?>" class="btn btn-primary btn-small">
-                                <i class="fas fa-tasks"></i> Assignments
                             </a>
                         </div>
                     </div>
@@ -634,64 +667,9 @@ $stmt->close();
         </div>
     </div>
     
-    <!-- Create Lesson Modal -->
-    <div id="createModal" class="modal">
-        <div class="modal-content">
-            <h2><i class="fas fa-book-plus"></i> Create New Lesson</h2>
-            <form method="POST">
-                <div class="form-group">
-                    <label><i class="fas fa-heading"></i> Lesson Title <span class="required">*</span></label>
-                    <input type="text" name="title" placeholder="Enter lesson title" required>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-align-left"></i> Description</label>
-                    <textarea name="description" placeholder="Enter lesson description (optional)"></textarea>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-file-alt"></i> Content</label>
-                    <textarea name="content" rows="8" placeholder="Enter lesson content"></textarea>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-video"></i> Video Path</label>
-                    <input type="text" name="video_path" placeholder="/uploads/videos/video.mp4">
-                    <small style="color: #718096;">Upload video first, then paste path here</small>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-sort-numeric-up"></i> Order Index</label>
-                    <input type="number" name="order_index" value="0" placeholder="Display order">
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" name="is_preview"> <i class="fas fa-eye"></i> Preview Lesson (Available in free preview)
-                    </label>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" name="create_lesson" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Create Lesson
-                    </button>
-                    <button type="button" onclick="closeCreateModal()" class="btn btn-cancel">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
     <script>
-        function openCreateModal() {
-            document.getElementById('createModal').classList.add('show');
-        }
-        function closeCreateModal() {
-            document.getElementById('createModal').classList.remove('show');
-        }
-        
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const createModal = document.getElementById('createModal');
-            if (event.target === createModal) {
-                closeCreateModal();
-            }
-        }
+        // The modal and question management JavaScript has been removed as per the edit hint.
+        // The assignment creation and editing are now handled by separate pages.
     </script>
 </body>
 </html>

@@ -1,10 +1,11 @@
 <?php
-require_once __DIR__ . '/../../includes/admin_auth.php';
-require_admin_auth();
+session_start();
+if (!isset($_SESSION['admin'])) {
+    header("Location: ../auth/index.php");
+    exit;
+}
 
 include '../../includes/db_connect.php';
-require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
-$db = new QueryBuilder($conn);
 
 $lesson_id = intval($_GET['lesson_id'] ?? 0);
 
@@ -32,10 +33,7 @@ if (!$lesson) {
 }
 
 // Handle assignment creation
-require_once __DIR__ . '/../../includes/csrf.php';
-    CSRF::requireToken();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_assignment'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_assignment'])) {
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';
     $type = $_POST['type'] ?? 'multiple_choice';

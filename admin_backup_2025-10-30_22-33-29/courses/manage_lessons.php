@@ -1,10 +1,11 @@
 <?php
-require_once __DIR__ . '/../../includes/admin_auth.php';
-require_admin_auth();
+session_start();
+if (!isset($_SESSION['admin'])) {
+    header("Location: ../auth/index.php");
+    exit;
+}
 
 include '../../includes/db_connect.php';
-require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
-$db = new QueryBuilder($conn);
 
 $module_id = intval($_GET['module_id'] ?? 0);
 
@@ -26,10 +27,7 @@ $module = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 // Handle lesson creation
-require_once __DIR__ . '/../../includes/csrf.php';
-    CSRF::requireToken();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_lesson'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_lesson'])) {
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';
     $content = $_POST['content'] ?? '';
@@ -47,10 +45,7 @@ require_once __DIR__ . '/../../includes/csrf.php';
 }
 
 // Handle lesson update
-require_once __DIR__ . '/../../includes/csrf.php';
-    CSRF::requireToken();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_lesson'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_lesson'])) {
     $lesson_id = intval($_POST['lesson_id']);
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';

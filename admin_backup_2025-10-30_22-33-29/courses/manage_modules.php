@@ -1,90 +1,93 @@
 <?php
-require_once __DIR__ . '/../../includes/admin_auth.php';
-require_admin_auth();
+session_start();
+if (!isset($_SESSION['admin'])) {
+    header("Location: ../auth/index.php");
+    exit;
+}
 
 include '../../includes/db_connect.php';
-require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
-$db = new QueryBuilder($conn);
 
-$module_id = intval($_GET['module_id'] ?? 0);
+// Initialize session variables for CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
-if ($module_id <= 0) {
+$course_id = intval($_GET['course_id'] ?? 0);
+
+if ($course_id <= 0) {
     header("Location: manage_courses.php");
     exit;
 }
 
-// Get module and course info
-$stmt = $conn->prepare("
-    SELECT m.*, c.title as course_title 
-    FROM course_modules m 
-    JOIN courses c ON m.course_id = c.id 
-    WHERE m.id = ?
-");
-$stmt->bind_param("i", $module_id);
+// Get course info
+$stmt = $conn->prepare("SELECT * FROM courses WHERE id = ?");
+if (!$stmt) {
+    die("Database error: " . $conn->error);
+}
+$stmt->bind_param("i", $course_id);
 $stmt->execute();
-$module = $stmt->get_result()->fetch_assoc();
+$course = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-// Handle lesson creation
-require_once __DIR__ . '/../../includes/csrf.php';
-    CSRF::requireToken();
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_lesson'])) {
-    $title = $_POST['title'] ?? '';
-    $description = $_POST['description'] ?? '';
-    $content = $_POST['content'] ?? '';
-    $video_path = $_POST['video_path'] ?? '';
-    $order_index = intval($_POST['order_index'] ?? 0);
-    $is_preview = isset($_POST['is_preview']) ? 1 : 0;
-    
-    $stmt = $conn->prepare("INSERT INTO lessons (module_id, title, description, content, video_path, order_index, is_preview) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("issssii", $module_id, $title, $description, $content, $video_path, $order_index, $is_preview);
-    $stmt->execute();
-    $stmt->close();
-    
-    header("Location: manage_lessons.php?module_id=" . $module_id . "&success=Lesson created");
+// Check if course exists
+if (!$course) {
+    header("Location: manage_courses.php");
     exit;
 }
 
-// Handle lesson update
-require_once __DIR__ . '/../../includes/csrf.php';
-    CSRF::requireToken();
+// Handle module creation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_module'])) {
+    // Verify CSRF token
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed");
+    }
     
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_lesson'])) {
-    $lesson_id = intval($_POST['lesson_id']);
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';
-    $content = $_POST['content'] ?? '';
-    $video_path = $_POST['video_path'] ?? '';
     $order_index = intval($_POST['order_index'] ?? 0);
-    $is_preview = isset($_POST['is_preview']) ? 1 : 0;
     
-    $stmt = $conn->prepare("UPDATE lessons SET title=?, description=?, content=?, video_path=?, order_index=?, is_preview=? WHERE id=? AND module_id=?");
-    $stmt->bind_param("ssssiiii", $title, $description, $content, $video_path, $order_index, $is_preview, $lesson_id, $module_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    header("Location: manage_lessons.php?module_id=" . $module_id . "&success=Lesson updated");
-    exit;
+    if (empty($title)) {
+        $error = "Module title is required";
+    } else {
+        $stmt = $conn->prepare("INSERT INTO course_modules (course_id, title, description, order_index) VALUES (?, ?, ?, ?)");
+        if (!$stmt) {
+            $error = "Database error: " . $conn->error;
+        } else {
+            $stmt->bind_param("issi", $course_id, $title, $description, $order_index);
+            if ($stmt->execute()) {
+                $stmt->close();
+                header("Location: manage_modules.php?course_id=" . $course_id . "&success=Module created");
+                exit;
+            } else {
+                $error = "Error creating module: " . $stmt->error;
+                $stmt->close();
+            }
+        }
+    }
 }
 
-// Handle lesson deletion
+// Handle module deletion
 if (isset($_GET['delete'])) {
-    $lesson_id = intval($_GET['delete']);
-    $stmt = $conn->prepare("DELETE FROM lessons WHERE id=? AND module_id=?");
-    $stmt->bind_param("ii", $lesson_id, $module_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    header("Location: manage_lessons.php?module_id=" . $module_id . "&success=Lesson deleted");
-    exit;
+    $module_id = intval($_GET['delete']);
+    $stmt = $conn->prepare("DELETE FROM course_modules WHERE id = ? AND course_id = ?");
+    if ($stmt) {
+        $stmt->bind_param("ii", $module_id, $course_id);
+        $stmt->execute();
+        $stmt->close();
+        
+        header("Location: manage_modules.php?course_id=" . $course_id . "&success=Module deleted");
+        exit;
+    }
 }
 
-// Get lessons
-$stmt = $conn->prepare("SELECT * FROM lessons WHERE module_id = ? ORDER BY order_index");
-$stmt->bind_param("i", $module_id);
+// Get modules
+$stmt = $conn->prepare("SELECT * FROM course_modules WHERE course_id = ? ORDER BY order_index");
+if (!$stmt) {
+    die("Database error: " . $conn->error);
+}
+$stmt->bind_param("i", $course_id);
 $stmt->execute();
-$lessons = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$modules = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 ?>
 <!DOCTYPE html>
@@ -92,7 +95,7 @@ $stmt->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Lessons - <?= htmlspecialchars($module['title']) ?></title>
+    <title>Manage Modules - <?= htmlspecialchars($course['title']) ?></title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -125,7 +128,6 @@ $stmt->close();
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-sizing: border-box;
         }
         
         .header-logo { display: flex; flex-shrink: 0;
@@ -151,7 +153,6 @@ $stmt->close();
             text-decoration: none;
             font-size: 0.95rem;
             transition: color 0.3s ease;
-            white-space: nowrap;
         }
         
         .header-nav a:hover {
@@ -247,6 +248,17 @@ $stmt->close();
             font-size: 0.85rem;
         }
         
+        .btn-secondary {
+            background: white;
+            color: #1a365d;
+            border: 2px solid #1a365d;
+        }
+        
+        .btn-secondary:hover {
+            background: #f0f4f8;
+            transform: translateY(-2px);
+        }
+        
         .btn-danger {
             background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
             color: white;
@@ -308,14 +320,14 @@ $stmt->close();
             font-size: 1.3rem;
         }
         
-        /* Lessons List */
-        .lessons-list {
+        /* Modules List */
+        .modules-list {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
         }
         
-        .lesson-item {
+        .module-item {
             background: white;
             border-radius: 12px;
             padding: 2rem;
@@ -327,32 +339,32 @@ $stmt->close();
             border-left: 5px solid #1a365d;
         }
         
-        .lesson-item:hover {
+        .module-item:hover {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
             transform: translateY(-2px);
         }
         
-        .lesson-info h3 {
+        .module-info h3 {
             margin: 0 0 0.5rem 0;
             color: #1a365d;
             font-size: 1.3rem;
             font-weight: 700;
         }
         
-        .lesson-info p {
+        .module-info p {
             color: #718096;
             margin: 0.5rem 0;
             line-height: 1.6;
         }
         
-        .lesson-info small {
+        .module-info small {
             color: #a0aec0;
             display: block;
             margin-top: 0.5rem;
             font-size: 0.85rem;
         }
         
-        .lesson-actions {
+        .module-actions {
             display: flex;
             gap: 0.75rem;
             flex-wrap: wrap;
@@ -381,7 +393,7 @@ $stmt->close();
         }
         
         /* Modal Styles */
-        .modal {
+        #createModal {
             display: none;
             position: fixed;
             top: 0;
@@ -395,7 +407,7 @@ $stmt->close();
             box-sizing: border-box;
         }
         
-        .modal.show {
+        #createModal.show {
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -411,11 +423,11 @@ $stmt->close();
             }
         }
         
-        .modal-content {
+        #createModal .modal-content {
             background: white;
             padding: 2.5rem;
             border-radius: 16px;
-            max-width: 600px;
+            max-width: 500px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
@@ -443,11 +455,11 @@ $stmt->close();
             font-weight: 700;
         }
         
-        .form-group {
+        #createModal .form-group {
             margin-bottom: 1.5rem !important;
         }
         
-        .form-group label {
+        .modal .form-group label {
             display: block !important;
             margin-bottom: 0.6rem !important;
             font-weight: 600 !important;
@@ -455,13 +467,13 @@ $stmt->close();
             font-size: 0.95rem !important;
         }
         
-        .form-group label .required {
+        .modal .form-group label .required {
             color: #ef4444;
         }
         
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
+        #createModal .form-group input,
+        #createModal .form-group select,
+        #createModal .form-group textarea {
             width: 100% !important;
             padding: 0.85rem !important;
             border: 1.5px solid #e2e8f0 !important;
@@ -472,15 +484,15 @@ $stmt->close();
             box-sizing: border-box !important;
         }
         
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
+        #createModal .form-group input:focus,
+        #createModal .form-group select:focus,
+        #createModal .form-group textarea:focus {
             outline: none !important;
             border-color: #1a365d !important;
             box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1) !important;
         }
         
-        .form-group textarea {
+        #createModal .form-group textarea {
             min-height: 120px !important;
             resize: vertical !important;
         }
@@ -536,12 +548,12 @@ $stmt->close();
                 width: 100%;
             }
             
-            .lesson-item {
+            .module-item {
                 flex-direction: column;
                 align-items: flex-start;
             }
             
-            .lesson-actions {
+            .module-actions {
                 width: 100%;
                 justify-content: flex-start;
             }
@@ -578,14 +590,14 @@ $stmt->close();
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-header-content">
-                <a href="manage_modules.php?course_id=<?= $module['course_id'] ?>">
-                    <i class="fas fa-chevron-left"></i> Back to Modules
+                <a href="manage_courses.php">
+                    <i class="fas fa-chevron-left"></i> Back to Courses
                 </a>
-                <h1><i class="fas fa-book"></i> Lessons: <?= htmlspecialchars($module['title']) ?></h1>
+                <h1><i class="fas fa-cube"></i> Modules: <?= htmlspecialchars($course['title']) ?></h1>
             </div>
             <div class="page-header-actions">
                 <button onclick="openCreateModal()" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> New Lesson
+                    <i class="fas fa-plus"></i> New Module
                 </button>
             </div>
         </div>
@@ -598,34 +610,35 @@ $stmt->close();
             </div>
         <?php endif; ?>
         
-        <!-- Lessons List -->
-        <div class="lessons-list">
-            <?php if (empty($lessons)): ?>
+        <?php if (isset($error)): ?>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span><?= htmlspecialchars($error) ?></span>
+            </div>
+        <?php endif; ?>
+        
+        <!-- Modules List -->
+        <div class="modules-list">
+            <?php if (empty($modules)): ?>
                 <div class="empty-state">
-                    <i class="fas fa-book"></i>
-                    <p>No lessons created yet.</p>
-                    <p style="color: #a0aec0; font-size: 0.95rem;">Click the "New Lesson" button to get started.</p>
+                    <i class="fas fa-inbox"></i>
+                    <p>No modules created yet.</p>
+                    <p style="color: #a0aec0; font-size: 0.95rem;">Click the "New Module" button to get started.</p>
                 </div>
             <?php else: ?>
-                <?php foreach ($lessons as $lesson): ?>
-                    <div class="lesson-item">
-                        <div class="lesson-info">
-                            <h3><?= htmlspecialchars($lesson['title']) ?></h3>
-                            <p><?= htmlspecialchars(substr($lesson['description'], 0, 150)) ?><?= strlen($lesson['description']) > 150 ? '...' : '' ?></p>
-                            <?php if ($lesson['video_path']): ?>
-                                <small><i class="fas fa-video"></i> <?= htmlspecialchars($lesson['video_path']) ?></small>
-                            <?php endif; ?>
-                            <small><i class="fas fa-sort"></i> Order Position: <?= $lesson['order_index'] ?></small>
+                <?php foreach ($modules as $module): ?>
+                    <div class="module-item">
+                        <div class="module-info">
+                            <h3><?= htmlspecialchars($module['title']) ?></h3>
+                            <p><?= htmlspecialchars($module['description']) ?></p>
+                            <small><i class="fas fa-sort"></i> Order Position: <?= $module['order_index'] ?></small>
                         </div>
-                        <div class="lesson-actions">
-                            <a href="edit_lesson.php?lesson_id=<?= $lesson['id'] ?>" class="btn btn-primary btn-small">
-                                <i class="fas fa-edit"></i> Edit
+                        <div class="module-actions">
+                            <a href="manage_lessons.php?module_id=<?= $module['id'] ?>" class="btn btn-primary btn-small">
+                                <i class="fas fa-book-open"></i> Manage Lessons
                             </a>
-                            <a href="?module_id=<?= $module_id ?>&delete=<?= $lesson['id'] ?>" class="btn btn-danger btn-small" onclick="return confirm('Are you sure you want to delete this lesson?')">
+                            <a href="?course_id=<?= $course_id ?>&delete=<?= $module['id'] ?>" class="btn btn-danger btn-small" onclick="return confirm('Delete this module? This will also delete all associated lessons.')">
                                 <i class="fas fa-trash-alt"></i> Delete
-                            </a>
-                            <a href="../assignments/manage_assignments.php?lesson_id=<?= $lesson['id'] ?>" class="btn btn-primary btn-small">
-                                <i class="fas fa-tasks"></i> Assignments
                             </a>
                         </div>
                     </div>
@@ -634,40 +647,27 @@ $stmt->close();
         </div>
     </div>
     
-    <!-- Create Lesson Modal -->
+    <!-- Create Module Modal -->
     <div id="createModal" class="modal">
         <div class="modal-content">
-            <h2><i class="fas fa-book-plus"></i> Create New Lesson</h2>
+            <h2><i class="fas fa-cube"></i> Create New Module</h2>
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                 <div class="form-group">
-                    <label><i class="fas fa-heading"></i> Lesson Title <span class="required">*</span></label>
-                    <input type="text" name="title" placeholder="Enter lesson title" required>
+                    <label><i class="fas fa-heading"></i> Module Title <span class="required">*</span></label>
+                    <input type="text" name="title" placeholder="Enter module title" required>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-align-left"></i> Description</label>
-                    <textarea name="description" placeholder="Enter lesson description (optional)"></textarea>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-file-alt"></i> Content</label>
-                    <textarea name="content" rows="8" placeholder="Enter lesson content"></textarea>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-video"></i> Video Path</label>
-                    <input type="text" name="video_path" placeholder="/uploads/videos/video.mp4">
-                    <small style="color: #718096;">Upload video first, then paste path here</small>
+                    <textarea name="description" placeholder="Enter module description (optional)"></textarea>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-sort-numeric-up"></i> Order Index</label>
                     <input type="number" name="order_index" value="0" placeholder="Display order">
                 </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" name="is_preview"> <i class="fas fa-eye"></i> Preview Lesson (Available in free preview)
-                    </label>
-                </div>
                 <div class="form-actions">
-                    <button type="submit" name="create_lesson" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Create Lesson
+                    <button type="submit" name="create_module" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Module
                     </button>
                     <button type="button" onclick="closeCreateModal()" class="btn btn-cancel">
                         <i class="fas fa-times"></i> Cancel
@@ -685,14 +685,17 @@ $stmt->close();
             document.getElementById('createModal').classList.remove('show');
         }
         
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const createModal = document.getElementById('createModal');
-            if (event.target === createModal) {
+        // Close modal when clicking outside of it
+        document.getElementById('createModal').addEventListener('click', function(event) {
+            if (event.target === this) {
                 closeCreateModal();
             }
-        }
+        });
     </script>
 </body>
 </html>
+
+
+
+
 
