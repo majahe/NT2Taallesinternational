@@ -67,7 +67,6 @@
         <div class="levels-section">
             <div class="level-box">
                 <h4>A1 - Beginner</h4>
-                <p><strong>Duration:</strong> 10 weeks (2x per week, 2 hours per lesson)</p>
                 <p><strong>What you'll learn:</strong></p>
                 <ul style="margin-top: 10px;">
                     <li>• Introduce yourself</li>
@@ -80,7 +79,6 @@
 
             <div class="level-box">
                 <h4>A2 - Elementary</h4>
-                <p><strong>Duration:</strong> 12 weeks (2x per week, 2 hours per lesson)</p>
                 <p><strong>What you'll learn:</strong></p>
                 <ul style="margin-top: 10px;">
                     <li>• Conversations about work and study</li>
@@ -93,7 +91,6 @@
 
             <div class="level-box">
                 <h4>B1 - Intermediate</h4>
-                <p><strong>Duration:</strong> 14 weeks (2x per week, 2 hours per lesson)</p>
                 <p><strong>What you'll learn:</strong></p>
                 <ul style="margin-top: 10px;">
                     <li>• Express opinions and discuss</li>
@@ -106,7 +103,6 @@
 
             <div class="level-box">
                 <h4>B2 - Advanced</h4>
-                <p><strong>Duration:</strong> 16 weeks (2x per week, 2 hours per lesson)</p>
                 <p><strong>What you'll learn:</strong></p>
                 <ul style="margin-top: 10px;">
                     <li>• Understand complex texts</li>
@@ -118,20 +114,6 @@
             </div>
         </div>
     </section>
-
-    <div class="price-box">
-        <h3>Course Price</h3>
-        <div class="price">€ 450,-</div>
-        <div class="price-details">
-            Per level (A1, A2, B1 or B2)<br>
-            Including all learning materials<br>
-            Online platform access for 1 year<br>
-            Certificate upon completion<br>
-            <br>
-            <strong>Registration discount: -10% when signing up for 2 levels!</strong>
-        </div>
-        <a href="register.php" class="cta-button">Register Now</a>
-    </div>
 
     <section class="content-section">
         <h2 class="section-title">Frequently Asked Questions (FAQ)</h2>

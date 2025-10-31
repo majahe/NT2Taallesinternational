@@ -67,7 +67,6 @@
         <div class="levels-section">
             <div class="level-box">
                 <h4>A1 - Начальный уровень</h4>
-                <p><strong>Длительность:</strong> 10 недель (2 раза в неделю, 2 часа на урок)</p>
                 <p><strong>Что вы изучите:</strong></p>
                 <ul style="margin-top: 10px;">
                     <li>• Представиться</li>
@@ -80,7 +79,6 @@
 
             <div class="level-box">
                 <h4>A2 - Базовый уровень</h4>
-                <p><strong>Длительность:</strong> 12 недель (2 раза в неделю, 2 часа на урок)</p>
                 <p><strong>Что вы изучите:</strong></p>
                 <ul style="margin-top: 10px;">
                     <li>• Разговоры о работе и учебе</li>
@@ -93,7 +91,6 @@
 
             <div class="level-box">
                 <h4>B1 - Средний уровень</h4>
-                <p><strong>Длительность:</strong> 14 недель (2 раза в неделю, 2 часа на урок)</p>
                 <p><strong>Что вы изучите:</strong></p>
                 <ul style="margin-top: 10px;">
                     <li>• Выражение мнений и дискуссии</li>
@@ -106,7 +103,6 @@
 
             <div class="level-box">
                 <h4>B2 - Продвинутый уровень</h4>
-                <p><strong>Длительность:</strong> 16 недель (2 раза в неделю, 2 часа на урок)</p>
                 <p><strong>Что вы изучите:</strong></p>
                 <ul style="margin-top: 10px;">
                     <li>• Понимание сложных текстов</li>
@@ -118,20 +114,6 @@
             </div>
         </div>
     </section>
-
-    <div class="price-box">
-        <h3>Стоимость курса</h3>
-        <div class="price">€ 450,-</div>
-        <div class="price-details">
-            За уровень (A1, A2, B1 или B2)<br>
-            Включая все учебные материалы<br>
-            Доступ к онлайн-платформе на 1 год<br>
-            Сертификат по окончании<br>
-            <br>
-            <strong>Скидка при регистрации: -10% при записи на 2 уровня!</strong>
-        </div>
-        <a href="register.php" class="cta-button">Записаться сейчас</a>
-    </div>
 
     <section class="content-section">
         <h2 class="section-title">Часто задаваемые вопросы (FAQ)</h2>
