@@ -27,7 +27,6 @@
             <a href="<?php echo $basePath; ?>pages/cursus-engels-nederlands.php">English to Dutch</a>
           </div>
         </div>
-        <a href="<?php echo $basePath; ?>pages/register.php" class="nav-btn register-btn">Register</a>
         <a href="<?php echo $basePath; ?>student/auth/login.php" class="nav-btn">Student Login</a>
       </div>
     </nav>

@@ -6,7 +6,7 @@
     <img src="assets/img/LOGO.png" alt="NT2 Taalles International Logo" class="hero-logo">
     <h1>Do you want to learn to speak Dutch quickly?</h1>
         <h2>Then you've come to the right place!</h2>
-      <a href="pages/register.php" class="btn-hero">Start Today</a>
+      <a href="pages/register.php" class="btn-hero">Register to Start Today</a>
   </div>
 </section>
 
@@ -22,7 +22,7 @@
       <div class="course-card">
         <h3>English to Dutch</h3>
         <p>Learn Dutch smoothly with English as your base language. Practical conversation and grammar in a comfortable setting.</p>
-        <a href="pages/courses.php" class="course-link">Click for more info</a>
+        <a href="pages/cursus-engels-nederlands.php" class="course-link">Click for more info</a>
       </div>
     </div>
   </div>

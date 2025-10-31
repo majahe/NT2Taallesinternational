@@ -30,7 +30,7 @@
       <div class="mvv-grid">
         <div class="mvv-card">
           <div class="mvv-icon">🎯</div>
-          <h2>Our Mission</h2>
+          <h2>Your Mission</h2>
           <p>To provide high-quality Dutch language education that empowers international students and professionals to integrate successfully into Dutch society while maintaining their cultural identity.</p>
         </div>
         <div class="mvv-card">

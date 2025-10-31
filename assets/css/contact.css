@@ -33,7 +33,10 @@
 
 /* Hero Section */
 .contact-hero {
-  background: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #5893d6 100%);
+  background-image: url('../img/NL Flag.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: 2rem 2rem;
   text-align: center;
   color: white;
@@ -48,8 +51,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-  opacity: 0.3;
+  background: rgba(26, 54, 93, 0.4);
+  z-index: 0;
 }
 
 .contact-hero .container {
@@ -80,20 +83,20 @@
 
 .contact-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.2rem;
-  max-width: 500px;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.6rem;
+  max-width: 250px;
   margin: 0 auto;
 }
 
 .contact-card {
   background: linear-gradient(135deg, #ffffff 0%, #799fc4 100%);
-  padding: 1.2rem;
-  border-radius: 12px;
+  padding: 0.6rem;
+  border-radius: 6px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(26,54,93,0.06);
+  box-shadow: 0 1px 4px rgba(26,54,93,0.06);
   transition: all 0.3s ease;
-  border: 2px solid rgba(26,54,93,0.1);
+  border: 1px solid rgba(26,54,93,0.1);
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
@@ -105,38 +108,38 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 1px;
   background: linear-gradient(90deg, #1a365d, #4a90e2);
-  border-radius: 12px 12px 0 0;
+  border-radius: 6px 6px 0 0;
 }
 
 .contact-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(26,54,93,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26,54,93,0.12);
   background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
 }
 
 .contact-icon {
-  font-size: 2rem;
-  margin-bottom: 0.8rem;
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
   display: block;
-  filter: drop-shadow(0 2px 4px rgba(26,54,93,0.1));
+  filter: drop-shadow(0 1px 2px rgba(26,54,93,0.1));
 }
 
 .contact-card h3 {
   color: #1a365d;
-  font-size: 1rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  margin-bottom: 0.6rem;
-  letter-spacing: 0.3px;
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.15px;
   text-transform: uppercase;
 }
 
 .contact-card p {
   color: #4a5568;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  margin: 0.3rem 0;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  margin: 0.15rem 0;
   font-weight: 500;
 }
 
@@ -398,8 +401,8 @@
   }
   
   .contact-cards {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 0.5rem;
   }
   
   .faq-grid {
@@ -408,7 +411,7 @@
   }
   
   .contact-card {
-    padding: 1rem;
+    padding: 0.5rem;
   }
   
   .faq-item {
