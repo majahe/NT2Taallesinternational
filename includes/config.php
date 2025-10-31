@@ -14,7 +14,7 @@ define('SMTP_FROM_EMAIL', 'majahe62@gmail.com');
 define('SMTP_FROM_NAME', 'NT2 Taalles International');
 
 // Admin Configuration
-define('ADMIN_EMAIL', 'majahe62@gmail.com');
+define('ADMIN_EMAIL', 'info@nt2taallesinternational.com');
 
 // Website Configuration
 define('WEBSITE_URL', 'https://nt2taallesinternational.com');
