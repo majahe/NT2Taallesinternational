@@ -1,38 +1,74 @@
-# NT2 Taalles International Website
+# NT2 Taalles International - Complete Learning Management System
 
-A comprehensive PHP-based website for NT2 (Dutch as a Second Language) course registration and management system.
+A comprehensive PHP-based Learning Management System (LMS) for NT2 (Dutch as a Second Language) courses, featuring course registration, online learning platform, student management, and administrative tools.
 
 ## 📋 Table of Contents
 
 - [Features](#-features)
 - [Technology Stack](#-technology-stack)
 - [Project Structure](#-project-structure)
+- [Quick Start](#-quick-start)
 - [Setup Instructions](#️-setup-instructions)
 - [Configuration](#-configuration)
 - [Admin Panel](#-admin-panel)
+- [Student Portal](#-student-portal)
+- [LMS Features](#-lms-features)
+- [Security](#-security)
 - [Documentation](#-documentation)
 - [Support](#-support)
 
 ## 🚀 Features
 
+### Public Website
 - **Responsive Design**: Mobile-friendly layout with modern CSS
-- **Contact Form**: Secure form processing with server-side validation
+- **Contact Form**: Secure form processing with server-side validation and CSRF protection
 - **Course Registration**: Student registration system for Dutch language courses
-- **Admin Dashboard**: Management interface for viewing and managing registrations
-- **Registered Students Management**: Complete student lifecycle management with start/end dates, payment tracking, and personal information
+- **Multi-language Course Pages**: English to Dutch and Russian to Dutch course information pages
+- **Email Notifications**: Automated email system using PHPMailer
+
+### Admin Panel
+- **Dashboard**: Comprehensive overview of all registrations and system statistics
+- **Registered Students Management**: Complete student lifecycle management with:
+  - Start/end dates tracking
+  - Payment status monitoring (Paid/Pending/Partial)
+  - Personal information management
+  - Search and filter functionality
+  - Revenue tracking and statistics
 - **Payment Tracking**: Monitor student payments with status indicators and printable reports
 - **Course Planning**: Schedule and manage course sessions
-- **Email Notifications**: Automated email system using PHPMailer
-- **Database Integration**: MySQL database with prepared statements
-- **Multi-language Support**: English to Dutch and Russian to Dutch course pages
+- **Course Management**: Create and manage courses, modules, and lessons
+- **Assignment Management**: Create assignments for lessons with multiple question types:
+  - Multiple Choice
+  - Fill in the Blank
+  - Essay (manual grading)
+  - File Upload (manual grading)
+- **Video Upload**: Upload and manage course videos (MP4, MOV, AVI, WebM, max 500MB)
+- **Student Access Control**: Grant course access to registered students
+
+### Student Portal (LMS)
+- **Student Authentication**: Secure login system for enrolled students
+- **Course Browser**: View all enrolled courses with progress tracking
+- **Video Lessons**: Watch course videos with automatic progress tracking
+- **Interactive Lessons**: Complete lessons with text content and video
+- **Assignment System**: Complete assignments and receive feedback
+- **Progress Tracking**: Monitor course completion and achievement statistics
+- **Responsive Design**: Full functionality on desktop, tablet, and mobile devices
+
+### Technical Features
+- **Database Integration**: MySQL database with prepared statements and Query Builder
+- **CSRF Protection**: Cross-Site Request Forgery protection on all forms
+- **Secure Authentication**: Separate admin and student authentication systems
+- **Error Handling**: Comprehensive error handling and logging
+- **Session Management**: Secure session handling for admin and student access
 
 ## 🛠 Technology Stack
 
 - **Backend**: PHP 7.4+
-- **Database**: MySQL 5.7+
+- **Database**: MySQL 5.7+ / MariaDB 10.3+
 - **Email**: PHPMailer 6.8+
-- **Web Server**: IIS (with web.config)
-- **Frontend**: HTML5, CSS3, JavaScript
+- **Web Server**: IIS (with web.config) or Apache (with .htaccess)
+- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
+- **Video Formats**: MP4, MOV, AVI, WebM
 
 ## 📁 Project Structure
 
@@ -40,6 +76,7 @@ A comprehensive PHP-based website for NT2 (Dutch as a Second Language) course re
 NT2TaallesInternational/
 ├── index.php                              # Main homepage
 ├── web.config                             # IIS server configuration
+├── .htaccess                              # Apache server configuration
 ├── README.md                              # This file
 │
 ├── admin/                                 # Admin panel
@@ -52,7 +89,8 @@ NT2TaallesInternational/
 │   │   └── dashboard.php                 # Main admin interface
 │   │
 │   ├── students/                         # Student management module
-│   │   └── registered_students.php       # Registered students management
+│   │   ├── registered_students.php       # Registered students management
+│   │   └── grant_course_access.php       # Grant LMS access to students
 │   │
 │   ├── payments/                         # Payment management module
 │   │   ├── pending_payments.php         # Payment tracking interface
@@ -61,21 +99,58 @@ NT2TaallesInternational/
 │   ├── planning/                         # Course planning module
 │   │   └── planning.php                 # Course scheduling interface
 │   │
+│   ├── courses/                          # Course management module
+│   │   ├── manage_courses.php           # Create/edit courses
+│   │   ├── manage_modules.php           # Create/edit modules
+│   │   ├── manage_lessons.php           # Create/edit lessons
+│   │   ├── upload_video.php             # Video upload interface
+│   │   └── manual_upload.php            # Manual video path entry
+│   │
+│   ├── assignments/                      # Assignment management module
+│   │   ├── manage_assignments.php       # Create/edit assignments
+│   │   ├── view_submissions.php         # View student submissions
+│   │   ├── create_assignment.php        # Assignment creation form
+│   │   └── edit_assignment.php          # Assignment editing form
+│   │
 │   └── debug/                            # Debug utilities
 │       ├── fix_password.php              # Password recovery tool
-│       └── planning_fixed.php           # Planning fix utility
+│       ├── server_diagnostic.php         # Server diagnostics
+│       └── upload_test.php               # Upload testing
+│
+├── student/                              # Student portal (LMS)
+│   ├── auth/                            # Student authentication
+│   │   ├── login.php                    # Student login page
+│   │   ├── logout.php                   # Student logout
+│   │   └── register_password.php        # Password registration
+│   │
+│   ├── dashboard/                       # Student dashboard
+│   │   ├── dashboard.php                # Main student dashboard
+│   │   └── my_courses.php               # Course list view
+│   │
+│   ├── course/                          # Course viewing module
+│   │   ├── view_course.php              # Course overview
+│   │   ├── view_lesson.php              # Lesson viewer
+│   │   ├── assignment.php               # Assignment viewer
+│   │   ├── submit_assignment.php        # Assignment submission handler
+│   │   └── assignment_result.php        # Assignment results viewer
+│   │
+│   └── progress/                        # Progress tracking module
+│       └── my_progress.php              # Detailed progress view
 │
 ├── assets/                               # Static files
 │   ├── css/                             # Stylesheets
 │   │   ├── style.css                    # Main styles
 │   │   ├── contact.css                  # Contact page styles
 │   │   ├── course.css                   # Course page styles
-│   │   └── about.css                    # About page styles
+│   │   ├── about.css                    # About page styles
+│   │   ├── student_portal.css           # Student portal styles
+│   │   └── course_viewer.css            # Course viewer styles
 │   │
 │   ├── img/                             # Images
 │   │   └── LOGO.png                     # Site logo
 │   │
-│   └── Video/                           # Video assets
+│   └── js/                              # JavaScript files
+│       └── progress_tracker.js          # Progress tracking script
 │
 ├── config/                               # Configuration directory
 │   └── (configuration files)
@@ -83,18 +158,30 @@ NT2TaallesInternational/
 ├── database/                             # Database utilities
 │   ├── setup_database.php               # Database setup utility
 │   ├── update_database.php              # Database update utility
-│   └── update_schema.sql                # Database schema updates
+│   ├── update_lms_tables.php            # LMS tables setup
+│   └── migrate_admin_files.php          # Migration utilities
 │
 ├── handlers/                             # Form processors
 │   ├── submit_contact.php               # Contact form handler
-│   └── submit_registration.php          # Registration form handler
+│   ├── submit_registration.php          # Registration form handler
+│   ├── upload_video.php                 # Video upload handler
+│   └── update_progress.php              # Progress update handler
 │
 ├── includes/                             # Shared PHP files
 │   ├── config.php                       # Main configuration loader
 │   ├── db_connect.php                   # Database connection
+│   ├── database/
+│   │   └── QueryBuilder.php            # Database query builder
 │   ├── functions.php                    # Utility functions
 │   ├── header.php                       # Site header
 │   ├── footer.php                       # Site footer
+│   ├── student_header.php               # Student portal header
+│   ├── admin_auth.php                   # Admin authentication helper
+│   ├── student_auth.php                 # Student authentication helper
+│   ├── csrf.php                         # CSRF protection functions
+│   ├── error_handler.php                # Error handling
+│   ├── errors/
+│   │   └── 500.php                      # Error pages
 │   ├── email_template.php               # Email templates
 │   │
 │   └── PHPMailer/                       # Email library
@@ -111,31 +198,73 @@ NT2TaallesInternational/
 │
 └── Guide/                                # Documentation
     ├── README.md                        # Documentation index
-    ├── GitHub-Setup-Guide.md           # GitHub setup instructions
-    ├── GitHub-Update-Guide.md          # GitHub update instructions
+    ├── LMS-User-Guide.md                # LMS user guide (Dutch)
+    ├── LMS-Quick-Start.md               # Quick start guide
+    ├── LMS-Troubleshooting.md           # Troubleshooting guide
+    ├── LMS-Windows-Setup.md             # Windows setup guide
+    ├── Registered-Students-Guide.md     # Registered students guide
     ├── Registered-Students-Quick-Setup.md # Quick setup guide
-    ├── Registered-Students-Guide.md    # Complete user guide
-    ├── FEATURE-OVERVIEW.md             # Visual feature guide
-    └── IMPLEMENTATION-SUMMARY.md       # Technical documentation
+    ├── FEATURE-OVERVIEW.md              # Visual feature guide
+    ├── IMPLEMENTATION-SUMMARY.md        # Technical documentation
+    ├── Security-Architecture-Guide.md   # Security architecture
+    ├── Admin-Security-Migration-Guide.md # Security migration guide
+    ├── CSRF-Testing-Guide.md            # CSRF testing guide
+    ├── GitHub-Setup-Guide.md            # GitHub setup instructions
+    ├── GitHub-Update-Guide.md           # GitHub update instructions
+    ├── PHP-Upload-Fix.md                # Upload troubleshooting
+    ├── PowerShell-Fix.md                # PowerShell fixes
+    ├── Strato-Setup.md                  # Strato hosting setup
+    └── Strato-VPS-Windows.md            # Strato VPS Windows setup
 ```
+
+## 🚀 Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd NT2TaallesInternational
+   ```
+
+2. **Setup database**
+   ```bash
+   php database/setup_database.php
+   php database/update_lms_tables.php
+   ```
+
+3. **Configure settings**
+   - Edit `includes/config.php` with your database and email settings
+
+4. **Access admin panel**
+   - Navigate to `/admin/auth/index.php`
+   - Login with admin credentials
+
+5. **Grant student access**
+   - Go to Admin Dashboard → Registered Students
+   - Click "Grant Course Access" for students
+   - Students can then login at `/student/auth/login.php`
 
 ## 🛠️ Setup Instructions
 
 ### Prerequisites
 
 - PHP 7.4 or higher
-- MySQL 5.7 or higher
-- IIS web server
+- MySQL 5.7+ or MariaDB 10.3+
+- IIS web server (Windows) or Apache (Linux)
 - Composer (for PHPMailer dependencies, if needed)
 
 ### 1. Database Setup
 
-1. **Create the database**:
+1. **Initial database setup**:
    ```bash
    php database/setup_database.php
    ```
 
-2. **Update the database** (if needed):
+2. **Setup LMS tables**:
+   ```bash
+   php database/update_lms_tables.php
+   ```
+
+3. **Update database** (if needed):
    ```bash
    php database/update_database.php
    ```
@@ -165,16 +294,27 @@ NT2TaallesInternational/
    define('WEBSITE_URL', 'https://yourdomain.com');
    ```
 
+2. **Create upload directories**:
+   ```bash
+   mkdir uploads
+   mkdir uploads/videos
+   chmod 755 uploads
+   chmod 755 uploads/videos
+   ```
+
 ### 3. Web Server Configuration
 
-1. **IIS Setup**:
-   - Ensure PHP is installed and configured
-   - Set document root to project directory
-   - The `web.config` file is already configured for URL rewriting
+#### IIS Setup (Windows)
+- Ensure PHP is installed and configured
+- Set document root to project directory
+- The `web.config` file is already configured for URL rewriting
+- Ensure PHP uploads are enabled (`upload_max_filesize` and `post_max_size`)
 
-2. **File Permissions**:
-   - Ensure web server has read access to all files
-   - Write access may be needed for logs (if applicable)
+#### Apache Setup (Linux)
+- Ensure PHP is installed and configured
+- Enable mod_rewrite
+- The `.htaccess` file is already configured
+- Set proper file permissions
 
 ### 4. Email Configuration
 
@@ -201,9 +341,14 @@ The application uses `includes/config.php` for all configuration settings includ
 The database includes the following main tables:
 - `registrations` - Student course registrations
 - `admins` - Admin user accounts
-- Additional tables for registered students, payments, and planning
-
-Run `database/setup_database.php` to initialize the database schema.
+- `courses` - Course information
+- `modules` - Course modules
+- `lessons` - Course lessons
+- `assignments` - Assignment definitions
+- `assignment_submissions` - Student assignment submissions
+- `student_course_access` - Student course enrollment
+- `lesson_progress` - Student lesson completion tracking
+- Additional tables for payments and planning
 
 ## 👨‍💼 Admin Panel
 
@@ -218,6 +363,10 @@ Run `database/setup_database.php` to initialize the database schema.
 - **Registered Students**: Manage enrolled students with full details
 - **Payments**: Track and manage student payments
 - **Planning**: Schedule and manage course sessions
+- **Course Management**: Create courses, modules, and lessons
+- **Assignment Management**: Create and grade assignments
+- **Video Upload**: Upload course videos
+- **Student Access**: Grant LMS access to registered students
 - **Settings**: Change admin password
 
 ### Admin Modules
@@ -236,6 +385,7 @@ Run `database/setup_database.php` to initialize the database schema.
    - Registered students management
    - Student information editing
    - Payment status tracking
+   - Course access management
 
 4. **Payments** (`admin/payments/`)
    - Payment tracking interface
@@ -246,25 +396,120 @@ Run `database/setup_database.php` to initialize the database schema.
    - Course scheduling
    - Session management
 
-## 📚 Documentation
+6. **Courses** (`admin/courses/`)
+   - Course creation and editing
+   - Module management
+   - Lesson management
+   - Video upload
 
-Comprehensive documentation is available in the `Guide/` directory:
+7. **Assignments** (`admin/assignments/`)
+   - Assignment creation
+   - Submission viewing
+   - Grading interface
 
-- **[Guide/README.md](Guide/README.md)** - Documentation index and navigation
-- **[GitHub-Setup-Guide.md](Guide/GitHub-Setup-Guide.md)** - GitHub setup instructions
-- **[GitHub-Update-Guide.md](Guide/GitHub-Update-Guide.md)** - GitHub update instructions
-- **[Registered-Students-Quick-Setup.md](Guide/Registered-Students-Quick-Setup.md)** - Quick setup guide for registered students feature
-- **[Registered-Students-Guide.md](Guide/Registered-Students-Guide.md)** - Complete user guide
-- **[FEATURE-OVERVIEW.md](Guide/FEATURE-OVERVIEW.md)** - Visual feature overview
-- **[IMPLEMENTATION-SUMMARY.md](Guide/IMPLEMENTATION-SUMMARY.md)** - Technical implementation details
+## 🎓 Student Portal
+
+### Access
+
+- **Login URL**: `/student/auth/login.php`
+- **Dashboard**: `/student/dashboard/dashboard.php` (requires authentication)
+
+### Features
+
+- **Dashboard**: Overview of enrolled courses and progress
+- **My Courses**: Browse all enrolled courses
+- **Course Viewer**: Watch videos and read lesson content
+- **Assignments**: Complete assignments and view results
+- **Progress Tracking**: Monitor course completion and achievements
+
+### Student Workflow
+
+1. **Registration**: Student registers via public website
+2. **Admin Approval**: Admin grants course access
+3. **Password Setup**: Student sets up password (if not set)
+4. **Login**: Student logs into portal
+5. **Course Access**: View and complete courses
+6. **Progress**: Track completion and achievements
+
+## 📚 LMS Features
+
+### Course Structure
+
+- **Courses**: Top-level course containers
+  - Title, description, level
+  - Language from/to settings
+  - Active/inactive status
+
+- **Modules**: Course sections
+  - Ordered modules within courses
+  - Title and description
+
+- **Lessons**: Individual learning units
+  - Text content
+  - Video integration
+  - Sequential unlocking
+  - Preview option (free lessons)
+
+### Assignment System
+
+- **Question Types**:
+  - Multiple Choice (auto-graded)
+  - Fill in the Blank (auto-graded)
+  - Essay (manual grading)
+  - File Upload (manual grading)
+
+- **Features**:
+  - Points system
+  - Required/optional assignments
+  - Automatic feedback for auto-graded questions
+  - Manual grading interface for admins
+
+### Progress Tracking
+
+- **Lesson Completion**: Automatic tracking when videos are watched
+- **Progress Percentage**: Calculated per course
+- **Statistics**: Total points, completed lessons, overall progress
+- **Achievement Tracking**: Points and completion records
 
 ## 🔒 Security
 
 - **Prepared Statements**: All database queries use prepared statements
-- **Password Hashing**: Admin passwords are hashed using SHA2
-- **Session Management**: Secure session handling for admin access
-- **Input Validation**: Server-side validation for all forms
+- **Password Hashing**: Admin and student passwords are hashed using secure methods
+- **Session Management**: Secure session handling for admin and student access
 - **CSRF Protection**: Form tokens for secure submissions
+- **Input Validation**: Server-side validation for all forms
+- **Access Control**: Role-based access (admin vs student)
+- **File Upload Security**: Type validation and size limits for video uploads
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `Guide/` directory:
+
+### Getting Started
+- **[Guide/README.md](Guide/README.md)** - Documentation index and navigation
+- **[LMS-Quick-Start.md](Guide/LMS-Quick-Start.md)** - Quick start guide for LMS
+- **[LMS-Windows-Setup.md](Guide/LMS-Windows-Setup.md)** - Windows setup guide
+
+### User Guides
+- **[LMS-User-Guide.md](Guide/LMS-User-Guide.md)** - Complete LMS user guide (Dutch)
+- **[Registered-Students-Guide.md](Guide/Registered-Students-Guide.md)** - Registered students management guide
+- **[Registered-Students-Quick-Setup.md](Guide/Registered-Students-Quick-Setup.md)** - Quick setup guide
+
+### Technical Documentation
+- **[FEATURE-OVERVIEW.md](Guide/FEATURE-OVERVIEW.md)** - Visual feature overview
+- **[IMPLEMENTATION-SUMMARY.md](Guide/IMPLEMENTATION-SUMMARY.md)** - Technical implementation details
+- **[Security-Architecture-Guide.md](Guide/Security-Architecture-Guide.md)** - Security architecture overview
+
+### Setup & Deployment
+- **[GitHub-Setup-Guide.md](Guide/GitHub-Setup-Guide.md)** - GitHub setup instructions
+- **[GitHub-Update-Guide.md](Guide/GitHub-Update-Guide.md)** - GitHub update instructions
+- **[Strato-Setup.md](Guide/Strato-Setup.md)** - Strato hosting setup
+- **[Strato-VPS-Windows.md](Guide/Strato-VPS-Windows.md)** - Strato VPS Windows setup
+
+### Troubleshooting
+- **[LMS-Troubleshooting.md](Guide/LMS-Troubleshooting.md)** - LMS troubleshooting guide
+- **[PHP-Upload-Fix.md](Guide/PHP-Upload-Fix.md)** - Upload troubleshooting
+- **[CSRF-Testing-Guide.md](Guide/CSRF-Testing-Guide.md)** - CSRF testing guide
 
 ## 🌐 Website Pages
 
@@ -296,9 +541,16 @@ Configure SMTP settings in `includes/config.php`.
 
 Debug utilities are available in `admin/debug/`:
 - `fix_password.php` - Password recovery tool
-- `planning_fixed.php` - Planning fix utility
+- `server_diagnostic.php` - Server diagnostics
+- `upload_test.php` - Upload testing
 
 **Note**: Remove or secure debug tools in production environments.
+
+## 🔄 Version History
+
+- **v2.0** - Added LMS (Learning Management System) with courses, modules, lessons, assignments, and student portal
+- **v1.5** - Added Registered Students Management System with payment tracking
+- **v1.0** - Initial release with course registration and admin dashboard
 
 ## 📝 License
 
@@ -313,5 +565,6 @@ For support and questions:
 
 ---
 
-**Last Updated**: 2024
-**Version**: 1.0
+**Last Updated**: December 2024  
+**Version**: 2.0  
+**Status**: Production Ready

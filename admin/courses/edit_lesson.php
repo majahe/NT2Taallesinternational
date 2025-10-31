@@ -1,11 +1,10 @@
 <?php
-session_start();
-if (!isset($_SESSION['admin'])) {
-    header("Location: ../auth/index.php");
-    exit;
-}
+require_once __DIR__ . '/../../includes/admin_auth.php';
+require_admin_auth();
 
 include '../../includes/db_connect.php';
+require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
+$db = new QueryBuilder($conn);
 
 $lesson_id = intval($_GET['lesson_id'] ?? 0);
 $module_id = intval($_GET['module_id'] ?? 0);
@@ -34,7 +33,10 @@ if (!$lesson) {
 }
 
 // Handle lesson update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_lesson'])) {
+require_once __DIR__ . '/../../includes/csrf.php';
+    CSRF::requireToken();
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_lesson'])) {
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';
     $content = $_POST['content'] ?? '';

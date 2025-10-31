@@ -1,9 +1,6 @@
 <?php
-session_start();
-if (!isset($_SESSION['admin'])) {
-    header("Location: ../auth/index.php");
-    exit;
-}
+require_once __DIR__ . '/../../includes/admin_auth.php';
+require_admin_auth();
 
 require_once __DIR__ . '/../../includes/db_connect.php';
 require_once __DIR__ . '/../../includes/PHPMailer/src/Exception.php';

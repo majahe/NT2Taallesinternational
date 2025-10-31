@@ -1,11 +1,10 @@
 <?php
-session_start();
-if (!isset($_SESSION['admin'])) {
-    header("Location: ../auth/index.php");
-    exit;
-}
+require_once __DIR__ . '/../../includes/admin_auth.php';
+require_admin_auth();
 
 include '../../includes/db_connect.php';
+require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
+$db = new QueryBuilder($conn);
 
 // Initialize session variables for CSRF token
 if (empty($_SESSION['csrf_token'])) {
@@ -36,7 +35,10 @@ if (!$course) {
 }
 
 // Handle module creation
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_module'])) {
+require_once __DIR__ . '/../../includes/csrf.php';
+    CSRF::requireToken();
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_module'])) {
     // Verify CSRF token
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
         die("CSRF token validation failed");

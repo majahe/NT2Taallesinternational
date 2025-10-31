@@ -1,11 +1,10 @@
 <?php
-session_start();
-if (!isset($_SESSION['admin'])) {
-    header("Location: ../auth/index.php");
-    exit;
-}
+require_once __DIR__ . '/../../includes/admin_auth.php';
+require_admin_auth();
 
 include '../../includes/db_connect.php';
+require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
+$db = new QueryBuilder($conn);
 
 $assignment_id = intval($_GET['assignment_id'] ?? 0);
 
@@ -22,7 +21,10 @@ $assignment = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 // Handle grading
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['grade_submission'])) {
+require_once __DIR__ . '/../../includes/csrf.php';
+    CSRF::requireToken();
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['grade_submission'])) {
     $submission_id = intval($_POST['submission_id']);
     $score = floatval($_POST['score']);
     $feedback = $_POST['feedback'] ?? '';

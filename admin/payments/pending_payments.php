@@ -1,11 +1,10 @@
 <?php
-session_start();
-if (!isset($_SESSION['admin'])) {
-  header("Location: ../auth/index.php");
-  exit;
-}
+require_once __DIR__ . '/../../includes/admin_auth.php';
+require_admin_auth();
 
 include '../../includes/db_connect.php';
+require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
+$db = new QueryBuilder($conn);
 
 // Handle payment status update
 if (isset($_POST['mark_as_paid'])) {

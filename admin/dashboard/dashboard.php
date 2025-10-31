@@ -1,39 +1,51 @@
 <?php
-session_start();
-if (!isset($_SESSION['admin'])) {
-  header("Location: ../auth/index.php");
-  exit;
+// Use centralized authentication
+require_once __DIR__ . '/../../includes/admin_auth.php';
+require_admin_auth();
+
+require_once __DIR__ . '/../../includes/db_connect.php';
+require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
+require_once __DIR__ . '/../../includes/csrf.php';
+
+$db = new QueryBuilder($conn);
+
+// Handle delete (with CSRF protection)
+if (isset($_GET['delete']) && isset($_GET['csrf_token'])) {
+    CSRF::requireToken();
+    
+    $id = intval($_GET['delete']);
+    if ($db->delete('registrations', ['id' => $id])) {
+        header("Location: dashboard.php?deleted=1");
+        exit;
+    }
 }
 
-include '../../includes/db_connect.php';
-
-// Verwijderen van record
-if (isset($_GET['delete'])) {
-  $id = intval($_GET['delete']);
-  $conn->query("DELETE FROM registrations WHERE id = $id");
-  header("Location: dashboard.php");
-  exit;
-}
-
-// Statusupdate via AJAX
+// Handle status update via AJAX (with CSRF protection)
 if (isset($_POST['update_status'])) {
-  $id = intval($_POST['id']);
-  $status = $_POST['status'];
-  $conn->query("UPDATE registrations SET status='$status' WHERE id=$id");
-  echo "OK";
-  exit;
+    CSRF::requireToken();
+    
+    $id = intval($_POST['id']);
+    $status = $_POST['status'];
+    
+    // Validate status
+    $validStatuses = ['New', 'Pending', 'Planned', 'Scheduled', 'Completed', 'Cancelled', 'Registered'];
+    if (in_array($status, $validStatuses)) {
+        $db->update('registrations', ['status' => $status], ['id' => $id]);
+        echo "OK";
+        exit;
+    }
 }
 
-// Alle data ophalen
-$result = $conn->query("SELECT * FROM registrations ORDER BY created_at DESC");
+// Get all registrations
+$registrations = $db->select('registrations', '*', [], 'created_at DESC');
 
-// Statistieken
-$total = $conn->query("SELECT COUNT(*) AS total FROM registrations")->fetch_assoc()['total'];
-$new = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='New'")->fetch_assoc()['c'];
-$pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Pending'")->fetch_assoc()['c'];
-$planned = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Planned'")->fetch_assoc()['c'];
-$scheduled = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Scheduled'")->fetch_assoc()['c'];
-$registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Registered'")->fetch_assoc()['c'];
+// Get statistics using secure queries
+$total = $db->count('registrations');
+$new = $db->count('registrations', ['status' => 'New']);
+$pending = $db->count('registrations', ['status' => 'Pending']);
+$planned = $db->count('registrations', ['status' => 'Planned']);
+$scheduled = $db->count('registrations', ['status' => 'Scheduled']);
+$registered = $db->count('registrations', ['status' => 'Registered']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,14 +56,17 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
   <meta http-equiv="Expires" content="0">
   <title>Admin Dashboard - Learn Dutch</title>
   <link rel="stylesheet" href="../../assets/css/style.css?v=<?= time() ?>">
+  <?= CSRF::getTokenField() ?>
   <script>
-  // AJAX status update
+  // AJAX status update (with CSRF token)
   function updateStatus(id, selectEl) {
     const status = selectEl.value;
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    
     fetch('dashboard.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: 'update_status=1&id=' + id + '&status=' + status
+      body: 'update_status=1&id=' + id + '&status=' + status + '&csrf_token=' + csrfToken
     }).then(() => {
       selectEl.style.backgroundColor = '#e0f2fe';
       setTimeout(() => selectEl.style.backgroundColor = '', 700);
@@ -129,7 +144,7 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
 <header class="admin-header">
   <h1>📘 Admin Dashboard – Learn Dutch</h1>
   <div class="admin-controls">
-    <span>Logged in as: <strong><?= $_SESSION['admin'] ?></strong></span>
+    <span>Logged in as: <strong><?= htmlspecialchars(get_admin_username()) ?></strong></span>
     <a href="../courses/manage_courses.php" class="btn small">📚 Manage Courses</a>
     <a href="../planning/planning.php" class="btn small">📅 Course Planning</a>
     <a href="../auth/change_password.php" class="btn small">🔐 Change Password</a>
@@ -137,6 +152,12 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
     <a href="../auth/logout.php" class="btn danger small">Logout</a>
   </div>
 </header>
+
+<?php if (isset($_GET['deleted'])): ?>
+  <div style="padding: 1rem; background: #d1fae5; color: #065f46; margin: 1rem; border-radius: 8px;">
+    Registration deleted successfully.
+  </div>
+<?php endif; ?>
 
 <section class="stats-container">
   <div class="stat-card"><h2><?= $total ?></h2><p>Total</p></div>
@@ -177,7 +198,7 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
       </tr>
     </thead>
     <tbody>
-      <?php while($row = $result->fetch_assoc()): ?>
+      <?php while($row = $registrations->fetch_assoc()): ?>
       <tr>
         <td><?= $row['id'] ?></td>
         <td><?= htmlspecialchars($row['name']) ?></td>
@@ -208,7 +229,7 @@ $registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status
             '<?= $row['created_at'] ?>',
             '<?= $row['status'] ?>'
           )">View</button>
-          <a href="?delete=<?= $row['id'] ?>" class="btn danger small" onclick="return confirm('Delete this registration?')">Delete</a>
+          <a href="?delete=<?= $row['id'] ?>&csrf_token=<?= CSRF::generateToken() ?>" class="btn danger small" onclick="return confirm('Delete this registration?')">Delete</a>
         </td>
       </tr>
       <?php endwhile; ?>

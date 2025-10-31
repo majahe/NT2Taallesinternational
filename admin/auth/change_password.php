@@ -1,45 +1,61 @@
 <?php
-session_start();
-if (!isset($_SESSION['admin'])) {
-  header("Location: index.php");
-  exit;
-}
+require_once __DIR__ . '/../../includes/admin_auth.php';
+require_admin_auth();
 
-include '../../includes/db_connect.php';
+require_once __DIR__ . '/../../includes/db_connect.php';
+require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 
+$db = new QueryBuilder($conn);
 $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  $current_password = $_POST['current_password'];
-  $new_password = $_POST['new_password'];
-  $confirm_password = $_POST['confirm_password'];
-  
-  // Validate inputs
-  if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
-    $error = "All fields are required.";
-  } elseif ($new_password !== $confirm_password) {
-    $error = "New passwords do not match.";
-  } elseif (strlen($new_password) < 6) {
-    $error = "New password must be at least 6 characters long.";
-  } else {
-    // Verify current password
-    $username = $_SESSION['admin'];
-    $sql = "SELECT * FROM admins WHERE username='$username' AND password=SHA2('$current_password', 256)";
-    $result = $conn->query($sql);
+    CSRF::requireToken();
     
-    if ($result->num_rows == 1) {
-      // Update password
-      $update_sql = "UPDATE admins SET password=SHA2('$new_password', 256) WHERE username='$username'";
-      if ($conn->query($update_sql)) {
-        $message = "Password changed successfully!";
-      } else {
-        $error = "Error updating password: " . $conn->error;
-      }
+    $current_password = $_POST['current_password'] ?? '';
+    $new_password = $_POST['new_password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+    
+    // Validate inputs
+    if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+        $error = "All fields are required.";
+    } elseif ($new_password !== $confirm_password) {
+        $error = "New passwords do not match.";
+    } elseif (strlen($new_password) < 8) {
+        $error = "New password must be at least 8 characters long.";
     } else {
-      $error = "Current password is incorrect.";
+        // Verify current password
+        $username = get_admin_username();
+        
+        $admin = $db->select('admins', '*', ['username' => $username]);
+        
+        if ($admin && $admin->num_rows === 1) {
+            $adminData = $admin->fetch_assoc();
+            
+            // Check password (support both methods)
+            $passwordValid = false;
+            if (password_verify($current_password, $adminData['password'])) {
+                $passwordValid = true;
+            } elseif (hash_equals($adminData['password'], hash('sha256', $current_password))) {
+                $passwordValid = true;
+            }
+            
+            if ($passwordValid) {
+                // Update password with password_hash
+                $newHash = password_hash($new_password, PASSWORD_DEFAULT);
+                if ($db->update('admins', ['password' => $newHash], ['id' => $adminData['id']])) {
+                    $message = "Password changed successfully!";
+                } else {
+                    $error = "Error updating password.";
+                }
+            } else {
+                $error = "Current password is incorrect.";
+            }
+        } else {
+            $error = "Admin user not found.";
+        }
     }
-  }
 }
 ?>
 <!DOCTYPE html>
@@ -141,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <header class="admin-header">
     <h1>🔐 Change Admin Password</h1>
     <div class="admin-controls">
-      <span>Logged in as: <strong><?= $_SESSION['admin'] ?></strong></span>
+      <span>Logged in as: <strong><?= htmlspecialchars(get_admin_username()) ?></strong></span>
       <a href="../dashboard/dashboard.php" class="btn small">← Dashboard</a>
       <a href="logout.php" class="btn danger small">Logout</a>
     </div>
@@ -159,6 +175,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php endif; ?>
 
     <form method="POST">
+      <?= CSRF::getTokenField() ?>
+      
       <div class="form-group">
         <label for="current_password">Current Password</label>
         <input type="password" id="current_password" name="current_password" required>
@@ -166,12 +184,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
       <div class="form-group">
         <label for="new_password">New Password</label>
-        <input type="password" id="new_password" name="new_password" required>
+        <input type="password" id="new_password" name="new_password" required minlength="8">
       </div>
 
       <div class="form-group">
         <label for="confirm_password">Confirm New Password</label>
-        <input type="password" id="confirm_password" name="confirm_password" required>
+        <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
       </div>
 
       <button type="submit" class="btn-change">Change Password</button>
@@ -180,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="password-requirements">
       <strong>Password Requirements:</strong>
       <ul>
-        <li>At least 6 characters long</li>
+        <li>At least 8 characters long</li>
         <li>Use a combination of letters, numbers, and symbols for better security</li>
         <li>Avoid common passwords like "password" or "123456"</li>
       </ul>
@@ -210,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       const strength = getPasswordStrength(password);
       
       // You could add a visual strength indicator here
-      if (password.length < 6) {
+      if (password.length < 8) {
         this.style.borderColor = '#ef4444';
       } else if (password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password)) {
         this.style.borderColor = '#10b981';
@@ -221,8 +239,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     function getPasswordStrength(password) {
       let strength = 0;
-      if (password.length >= 6) strength++;
       if (password.length >= 8) strength++;
+      if (password.length >= 12) strength++;
       if (/[A-Z]/.test(password)) strength++;
       if (/[0-9]/.test(password)) strength++;
       if (/[^A-Za-z0-9]/.test(password)) strength++;

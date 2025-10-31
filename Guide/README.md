@@ -74,6 +74,43 @@ Technical documentation for developers and system administrators.
 
 ---
 
+### 🔒 Security & Architecture (NEW)
+
+Complete documentation for the new professional security system.
+
+#### [Security-Architecture-Guide.md](Security-Architecture-Guide.md) 🛡️ **COMPREHENSIVE GUIDE**
+Complete guide to the new security architecture.
+- Admin authentication system
+- QueryBuilder for secure database queries
+- CSRF protection implementation
+- Error handling system
+- Session management
+- Security best practices
+- Before & after comparison
+
+**Time to read: 15 minutes**
+
+#### [Admin-Security-Migration-Guide.md](Admin-Security-Migration-Guide.md) 🔄 **MIGRATION GUIDE**
+Step-by-step guide for migrating admin files to use new security system.
+- Migration process
+- Testing after migration
+- Manual updates required
+- Troubleshooting
+- Rollback procedures
+
+**Time to read: 10 minutes**
+
+#### [CSRF-Testing-Guide.md](CSRF-Testing-Guide.md) 🧪 **TESTING GUIDE**
+How to test and verify CSRF protection is working.
+- What is CSRF protection
+- Testing methods
+- Verification checklist
+- Troubleshooting
+
+**Time to read: 5 minutes**
+
+---
+
 ## 🎯 Quick Navigation
 
 ### I want to...
@@ -96,6 +133,15 @@ Technical documentation for developers and system administrators.
 **...update my project with latest changes**
 → Read: [GitHub-Update-Guide.md](GitHub-Update-Guide.md)
 
+**...understand the security system**
+→ Read: [Security-Architecture-Guide.md](Security-Architecture-Guide.md)
+
+**...migrate admin files to new security**
+→ Read: [Admin-Security-Migration-Guide.md](Admin-Security-Migration-Guide.md)
+
+**...test CSRF protection**
+→ Read: [CSRF-Testing-Guide.md](CSRF-Testing-Guide.md)
+
 ---
 
 ## 📋 Documentation Structure
@@ -111,22 +157,57 @@ Guide/
 ├── GitHub-Update-Guide.md
 │   └─ Keeping project updated
 │
-├── Registered-Students-Quick-Setup.md ⭐ NEW
+├── Registered-Students-Quick-Setup.md ⭐
 │   └─ 3-step quick start (5 min read)
 │
-├── Registered-Students-Guide.md ⭐ NEW
+├── Registered-Students-Guide.md ⭐
 │   └─ Complete feature documentation (15 min read)
 │
-├── FEATURE-OVERVIEW.md ⭐ NEW
+├── FEATURE-OVERVIEW.md ⭐
 │   └─ Visual guide with diagrams (10 min read)
 │
-└── IMPLEMENTATION-SUMMARY.md ⭐ NEW
-    └─ Technical implementation details (10 min read)
+├── IMPLEMENTATION-SUMMARY.md ⭐
+│   └─ Technical implementation details (10 min read)
+│
+├── Security-Architecture-Guide.md 🔒 NEW
+│   └─ Complete security system documentation (15 min read)
+│
+├── Admin-Security-Migration-Guide.md 🔒 NEW
+│   └─ Migration process and testing (10 min read)
+│
+└── CSRF-Testing-Guide.md 🔒 NEW
+    └─ CSRF protection testing guide (5 min read)
 ```
 
 ---
 
 ## 🆕 What's New?
+
+### Security Architecture Upgrade (v3.0) 🔒 NEW
+
+A professional security system has been implemented for the admin portal!
+
+**Key Security Features:**
+- 🛡️ Centralized authentication middleware
+- 🔒 SQL injection prevention (QueryBuilder)
+- 🚫 CSRF protection on all forms
+- ⏱️ Session timeout (30 minutes)
+- 🔐 Modern password hashing
+- ⚠️ Centralized error handling
+
+**Files Added:**
+- `includes/admin_auth.php` - Authentication middleware
+- `includes/database/QueryBuilder.php` - Secure database queries
+- `includes/csrf.php` - CSRF protection
+- `includes/error_handler.php` - Error handling
+- 3 comprehensive security guides
+
+**Migration:**
+- Automated migration script available
+- All admin files can be updated automatically
+- Manual updates guide provided
+
+---
 
 ### Registered Students Management System (v1.0)
 
@@ -245,6 +326,9 @@ A complete student management system has been added to the admin panel!
 | Registered-Students-Guide.md | Complete guide | 8 pages | Users |
 | FEATURE-OVERVIEW.md | Visual guide | 10 pages | All |
 | IMPLEMENTATION-SUMMARY.md | Technical | 12 pages | Developers |
+| Security-Architecture-Guide.md | Security system | 15 pages | Developers/Admins |
+| Admin-Security-Migration-Guide.md | Migration | 10 pages | Developers |
+| CSRF-Testing-Guide.md | Testing | 5 pages | Developers/Admins |
 | GitHub-Setup-Guide.md | Git setup | 10 pages | Developers |
 | GitHub-Update-Guide.md | Git updates | 10 pages | Developers |
 
@@ -294,6 +378,11 @@ Course Completion
 - Visual Overview: [FEATURE-OVERVIEW.md](FEATURE-OVERVIEW.md)
 - Technical Details: [IMPLEMENTATION-SUMMARY.md](IMPLEMENTATION-SUMMARY.md)
 
+**Security & Architecture:**
+- Architecture Guide: [Security-Architecture-Guide.md](Security-Architecture-Guide.md)
+- Migration Guide: [Admin-Security-Migration-Guide.md](Admin-Security-Migration-Guide.md)
+- Testing Guide: [CSRF-Testing-Guide.md](CSRF-Testing-Guide.md)
+
 **Project Setup:**
 - Initial Setup: [GitHub-Setup-Guide.md](GitHub-Setup-Guide.md)
 - Updates: [GitHub-Update-Guide.md](GitHub-Update-Guide.md)
@@ -327,8 +416,8 @@ Everything you need to know is documented here. Start with the Quick Setup guide
 
 ---
 
-**Last Updated:** October 25, 2024  
-**Documentation Version:** 1.0  
-**Compatible With:** NT2 Taalles International v2.0+
+**Last Updated:** January 2025  
+**Documentation Version:** 2.0  
+**Compatible With:** NT2 Taalles International v3.0+
 
 Happy learning! 🚀
