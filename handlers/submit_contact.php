@@ -16,20 +16,15 @@ try {
     // Include required files
     require_once __DIR__ . '/../includes/db_connect.php';
     require_once __DIR__ . '/../includes/config.php';
+    require_once __DIR__ . '/../includes/csrf.php';
     require_once __DIR__ . '/../includes/rate_limit.php';
     require __DIR__ . '/../includes/PHPMailer/src/Exception.php';
     require __DIR__ . '/../includes/PHPMailer/src/PHPMailer.php';
     require __DIR__ . '/../includes/PHPMailer/src/SMTP.php';
 
-    // Rate Limiting
-    if (!RateLimit::check('contact')) {
-        $remainingTime = RateLimit::getTimeUntilReset('contact');
-        $minutes = ceil($remainingTime / 60);
-        $_SESSION['contact_errors'] = ["Too many contact form submissions. Please try again in {$minutes} minute(s)."];
-        header('Location: /pages/contact.php');
-        exit;
-    }
-    
+    // CSRF Protection
+    CSRF::requireToken();
+
     // Sanitize and validate input data
     function sanitize_input($data) {
         return htmlspecialchars(strip_tags(trim($data)));
@@ -49,6 +44,86 @@ try {
     $message = sanitize_input($_POST['message'] ?? '');
     $newsletter = isset($_POST['newsletter']) ? 1 : 0;
     $privacy = isset($_POST['privacy']) ? 1 : 0;
+
+    // Helper function to save form data to session
+    $saveFormData = function() use ($firstName, $lastName, $email, $phone, $subject, $courseInterest, $message, $newsletter, $privacy) {
+        $_SESSION['contact_form_data'] = [
+            'firstName' => $firstName,
+            'lastName' => $lastName,
+            'email' => $email,
+            'phone' => $phone,
+            'subject' => $subject,
+            'courseInterest' => $courseInterest,
+            'message' => $message,
+            'newsletter' => $newsletter,
+            'privacy' => $privacy
+        ];
+    };
+
+    // reCAPTCHA Verification
+    if (empty(RECAPTCHA_SECRET_KEY)) {
+        error_log("reCAPTCHA secret key is not configured");
+        $saveFormData();
+        $_SESSION['contact_errors'] = ['reCAPTCHA is not properly configured. Please contact the administrator.'];
+        header('Location: /pages/contact.php');
+        exit;
+    }
+
+    $recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
+    if (empty($recaptchaResponse)) {
+        $saveFormData();
+        $_SESSION['contact_errors'] = ['Please complete the reCAPTCHA verification.'];
+        header('Location: /pages/contact.php');
+        exit;
+    }
+
+    // Verify reCAPTCHA with Google
+    $recaptchaUrl = 'https://www.google.com/recaptcha/api/siteverify';
+    $recaptchaData = [
+        'secret' => RECAPTCHA_SECRET_KEY,
+        'response' => $recaptchaResponse,
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+    ];
+
+    $recaptchaOptions = [
+        'http' => [
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method' => 'POST',
+            'content' => http_build_query($recaptchaData)
+        ]
+    ];
+
+    $recaptchaContext = stream_context_create($recaptchaOptions);
+    $recaptchaResult = @file_get_contents($recaptchaUrl, false, $recaptchaContext);
+    
+    if ($recaptchaResult === false) {
+        error_log("Failed to verify reCAPTCHA: Could not connect to Google's servers");
+        $saveFormData();
+        $_SESSION['contact_errors'] = ['Unable to verify reCAPTCHA. Please try again later.'];
+        header('Location: /pages/contact.php');
+        exit;
+    }
+
+    $recaptchaJson = json_decode($recaptchaResult, true);
+    
+    if (!isset($recaptchaJson['success']) || $recaptchaJson['success'] !== true) {
+        $errorCodes = $recaptchaJson['error-codes'] ?? ['unknown'];
+        error_log("reCAPTCHA verification failed: " . implode(', ', $errorCodes));
+        $saveFormData();
+        $_SESSION['contact_errors'] = ['reCAPTCHA verification failed. Please try again.'];
+        header('Location: /pages/contact.php');
+        exit;
+    }
+
+    // Rate Limiting
+    if (!RateLimit::check('contact')) {
+        $saveFormData();
+        $remainingTime = RateLimit::getTimeUntilReset('contact');
+        $minutes = ceil($remainingTime / 60);
+        $_SESSION['contact_errors'] = ["Too many contact form submissions. Please try again in {$minutes} minute(s)."];
+        header('Location: /pages/contact.php');
+        exit;
+    }
     
     // Validation
     $errors = [];
@@ -79,8 +154,8 @@ try {
     
     // If there are validation errors, redirect back with errors
     if (!empty($errors)) {
+        $saveFormData();
         $_SESSION['contact_errors'] = $errors;
-        $_SESSION['contact_form_data'] = $_POST;
         header('Location: /pages/contact.php');
         exit;
     }

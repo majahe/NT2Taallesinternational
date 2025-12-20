@@ -1,4 +1,10 @@
 <?php
+  session_start();
+  require_once __DIR__ . '/../includes/config.php';
+  require_once __DIR__ . '/../includes/csrf.php';
+  
+  $recaptchaSiteKey = RECAPTCHA_SITE_KEY;
+  
   $isInPages = strpos($_SERVER['SCRIPT_NAME'], '/pages/') !== false || strpos($_SERVER['PHP_SELF'], '/pages/') !== false;
   $basePath = $isInPages ? '../' : '';
 ?>
@@ -146,6 +152,18 @@
             </label>
           </div>
           
+          <?php echo CSRF::getTokenField(); ?>
+          
+          <div class="form-group">
+            <?php if (!empty($recaptchaSiteKey)): ?>
+              <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars($recaptchaSiteKey); ?>"></div>
+            <?php else: ?>
+              <p style="color: #e53e3e; font-size: 0.875rem; padding: 1rem; background: #fed7d7; border-radius: 4px;">
+                ⚠️ reCAPTCHA is not configured. Please set RECAPTCHA_SITE_KEY in your config/.env file.
+              </p>
+            <?php endif; ?>
+          </div>
+          
           <button type="submit" class="btn-submit">
             <span class="btn-text">Send Message</span>
             <span class="btn-icon">→</span>
@@ -157,6 +175,10 @@
 
 
   <?php include $basePath . 'includes/footer.php'; ?>
+  
+  <?php if (!empty($recaptchaSiteKey)): ?>
+  <script src="https://www.google.com/recaptcha/api.js?hl=en" async defer></script>
+  <?php endif; ?>
 
   <script>
     // Form validation and enhancement
