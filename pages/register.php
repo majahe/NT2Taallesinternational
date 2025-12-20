@@ -4,10 +4,16 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 $recaptchaSiteKey = RECAPTCHA_SITE_KEY;
+
+// Get saved form data from session (if validation failed)
+$formData = $_SESSION['registration_form_data'] ?? [];
+// Clear the saved data after retrieving it
+unset($_SESSION['registration_form_data']);
+
 include '../includes/header.php';
 ?>
 <?php if (!empty($recaptchaSiteKey)): ?>
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script src="https://www.google.com/recaptcha/api.js?hl=en" async defer></script>
 <?php endif; ?>
 <section class="form-section">
   <h2>Register for a Course</h2>
@@ -24,11 +30,11 @@ include '../includes/header.php';
     <div class="form-row">
       <div class="form-group">
         <label>Full Name *</label>
-        <input type="text" name="name" required>
+        <input type="text" name="name" value="<?php echo htmlspecialchars($formData['name'] ?? ''); ?>" required>
       </div>
       <div class="form-group">
         <label>Email Address *</label>
-        <input type="email" name="email" required>
+        <input type="email" name="email" value="<?php echo htmlspecialchars($formData['email'] ?? ''); ?>" required>
       </div>
     </div>
 
@@ -37,20 +43,20 @@ include '../includes/header.php';
         <label>Course *</label>
         <select name="course" required>
           <option value="">Select a course</option>
-          <option value="Beginner Dutch">Beginner Dutch</option>
-          <option value="Intermediate Dutch">Intermediate Dutch</option>
-          <option value="Advanced Dutch">Advanced Dutch</option>
-          <option value="Business Dutch">Business Dutch</option>
-          <option value="Conversation Practice">Conversation Practice</option>
+          <option value="Beginner Dutch" <?php echo (isset($formData['course']) && $formData['course'] === 'Beginner Dutch') ? 'selected' : ''; ?>>Beginner Dutch</option>
+          <option value="Intermediate Dutch" <?php echo (isset($formData['course']) && $formData['course'] === 'Intermediate Dutch') ? 'selected' : ''; ?>>Intermediate Dutch</option>
+          <option value="Advanced Dutch" <?php echo (isset($formData['course']) && $formData['course'] === 'Advanced Dutch') ? 'selected' : ''; ?>>Advanced Dutch</option>
+          <option value="Business Dutch" <?php echo (isset($formData['course']) && $formData['course'] === 'Business Dutch') ? 'selected' : ''; ?>>Business Dutch</option>
+          <option value="Conversation Practice" <?php echo (isset($formData['course']) && $formData['course'] === 'Conversation Practice') ? 'selected' : ''; ?>>Conversation Practice</option>
         </select>
       </div>
       <div class="form-group">
         <label>Spoken Language *</label>
         <select name="spoken_language" required>
           <option value="">Select your native language</option>
-          <option value="Russian">Russian</option>
-          <option value="English">English</option>
-          <option value="Other">Other</option>
+          <option value="Russian" <?php echo (isset($formData['spoken_language']) && $formData['spoken_language'] === 'Russian') ? 'selected' : ''; ?>>Russian</option>
+          <option value="English" <?php echo (isset($formData['spoken_language']) && $formData['spoken_language'] === 'English') ? 'selected' : ''; ?>>English</option>
+          <option value="Other" <?php echo (isset($formData['spoken_language']) && $formData['spoken_language'] === 'Other') ? 'selected' : ''; ?>>Other</option>
         </select>
       </div>
     </div>
@@ -60,9 +66,9 @@ include '../includes/header.php';
         <label>Preferred Time *</label>
         <select name="preferred_time" required>
           <option value="">Select a time of day</option>
-          <option value="Morning (9:00 - 12:00)">Morning (9:00 - 12:00)</option>
-          <option value="Afternoon (12:00 - 17:00)">Afternoon (12:00 - 17:00)</option>
-          <option value="Evening (17:00 - 21:00)">Evening (17:00 - 21:00)</option>
+          <option value="Morning (9:00 - 12:00)" <?php echo (isset($formData['preferred_time']) && $formData['preferred_time'] === 'Morning (9:00 - 12:00)') ? 'selected' : ''; ?>>Morning (9:00 - 12:00)</option>
+          <option value="Afternoon (12:00 - 17:00)" <?php echo (isset($formData['preferred_time']) && $formData['preferred_time'] === 'Afternoon (12:00 - 17:00)') ? 'selected' : ''; ?>>Afternoon (12:00 - 17:00)</option>
+          <option value="Evening (17:00 - 21:00)" <?php echo (isset($formData['preferred_time']) && $formData['preferred_time'] === 'Evening (17:00 - 21:00)') ? 'selected' : ''; ?>>Evening (17:00 - 21:00)</option>
         </select>
       </div>
       <div class="form-group">
@@ -73,7 +79,7 @@ include '../includes/header.php';
 
     <div class="form-group full">
       <label>Additional Information</label>
-      <textarea name="message" rows="4" placeholder="Tell us about your learning goals, experience with Dutch, or any questions..."></textarea>
+      <textarea name="message" rows="4" placeholder="Tell us about your learning goals, experience with Dutch, or any questions..."><?php echo htmlspecialchars($formData['message'] ?? ''); ?></textarea>
     </div>
 
     <div class="form-group full">
