@@ -1,9 +1,14 @@
 <?php 
 session_start();
-include '../includes/header.php';
-require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/csrf.php';
+
+$recaptchaSiteKey = RECAPTCHA_SITE_KEY;
+include '../includes/header.php';
 ?>
+<?php if (!empty($recaptchaSiteKey)): ?>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<?php endif; ?>
 <section class="form-section">
   <h2>Register for a Course</h2>
   
@@ -72,9 +77,17 @@ require_once __DIR__ . '/../includes/config.php';
     </div>
 
     <div class="form-group full">
-      <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars(RECAPTCHA_SITE_KEY); ?>"></div>
-      <?php if (empty(RECAPTCHA_SITE_KEY)): ?>
-        <p style="color: #e53e3e; font-size: 0.875rem; margin-top: 0.5rem;">⚠️ reCAPTCHA is not configured. Please set RECAPTCHA_SITE_KEY in your .env file.</p>
+      <?php if (!empty($recaptchaSiteKey)): ?>
+        <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars($recaptchaSiteKey); ?>"></div>
+      <?php else: ?>
+        <p style="color: #e53e3e; font-size: 0.875rem; padding: 1rem; background: #fed7d7; border-radius: 4px;">
+          ⚠️ reCAPTCHA is not configured. Please set RECAPTCHA_SITE_KEY in your config/.env file.
+          <?php if (defined('RECAPTCHA_SITE_KEY')): ?>
+            <br><small>Debug: RECAPTCHA_SITE_KEY is defined but empty. Value: "<?php echo htmlspecialchars(RECAPTCHA_SITE_KEY); ?>"</small>
+          <?php else: ?>
+            <br><small>Debug: RECAPTCHA_SITE_KEY constant is not defined.</small>
+          <?php endif; ?>
+        </p>
       <?php endif; ?>
     </div>
 
@@ -83,5 +96,4 @@ require_once __DIR__ . '/../includes/config.php';
     </div>
   </form>
 </section>
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <?php include '../includes/footer.php'; ?>

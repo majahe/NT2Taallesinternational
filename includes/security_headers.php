@@ -12,7 +12,8 @@ header('X-Content-Type-Options: nosniff');
 
 // Content Security Policy - restrict resource loading
 // Adjust as needed for your site's requirements
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self';");
+// Added www.google.com and www.gstatic.com for reCAPTCHA support
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.google.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://www.google.com; frame-src 'self' https://www.google.com;");
 
 // XSS Protection (legacy but still useful)
 header('X-XSS-Protection: 1; mode=block');
