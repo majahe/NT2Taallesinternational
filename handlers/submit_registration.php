@@ -17,6 +17,57 @@ try {
     // CSRF Protection
     CSRF::requireToken();
 
+    // reCAPTCHA Verification
+    if (empty(RECAPTCHA_SECRET_KEY)) {
+        error_log("reCAPTCHA secret key is not configured");
+        $_SESSION['registration_error'] = 'reCAPTCHA is not properly configured. Please contact the administrator.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    $recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
+    if (empty($recaptchaResponse)) {
+        $_SESSION['registration_error'] = 'Please complete the reCAPTCHA verification.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    // Verify reCAPTCHA with Google
+    $recaptchaUrl = 'https://www.google.com/recaptcha/api/siteverify';
+    $recaptchaData = [
+        'secret' => RECAPTCHA_SECRET_KEY,
+        'response' => $recaptchaResponse,
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+    ];
+
+    $recaptchaOptions = [
+        'http' => [
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method' => 'POST',
+            'content' => http_build_query($recaptchaData)
+        ]
+    ];
+
+    $recaptchaContext = stream_context_create($recaptchaOptions);
+    $recaptchaResult = @file_get_contents($recaptchaUrl, false, $recaptchaContext);
+    
+    if ($recaptchaResult === false) {
+        error_log("Failed to verify reCAPTCHA: Could not connect to Google's servers");
+        $_SESSION['registration_error'] = 'Unable to verify reCAPTCHA. Please try again later.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    $recaptchaJson = json_decode($recaptchaResult, true);
+    
+    if (!isset($recaptchaJson['success']) || $recaptchaJson['success'] !== true) {
+        $errorCodes = $recaptchaJson['error-codes'] ?? ['unknown'];
+        error_log("reCAPTCHA verification failed: " . implode(', ', $errorCodes));
+        $_SESSION['registration_error'] = 'reCAPTCHA verification failed. Please try again.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
     // Rate Limiting
     if (!RateLimit::check('registration')) {
         $remainingTime = RateLimit::getTimeUntilReset('registration');

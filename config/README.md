@@ -13,6 +13,7 @@ This directory contains environment variable configuration files.
 2. **Configure your credentials**: Edit `config/.env` and replace the placeholder values with your actual:
    - Database credentials (DB_HOST, DB_USER, DB_PASS, DB_NAME)
    - SMTP credentials (SMTP_USERNAME, SMTP_PASSWORD, etc.)
+   - reCAPTCHA keys (RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY)
    - Other configuration values
 
 3. **Security Note**: The `.env` file is already in `.gitignore` and will NOT be committed to version control. Never commit actual credentials.
@@ -37,6 +38,9 @@ WEBSITE_URL=https://nt2taallesinternational.com
 
 SMTP_SSL_VERIFY=false
 SMTP_DEBUG=false
+
+RECAPTCHA_SITE_KEY=your_recaptcha_site_key
+RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
 ```
 
 ## Production Deployment

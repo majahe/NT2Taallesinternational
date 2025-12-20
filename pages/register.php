@@ -2,6 +2,7 @@
 session_start();
 include '../includes/header.php';
 require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/config.php';
 ?>
 <section class="form-section">
   <h2>Register for a Course</h2>
@@ -71,8 +72,16 @@ require_once __DIR__ . '/../includes/csrf.php';
     </div>
 
     <div class="form-group full">
+      <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars(RECAPTCHA_SITE_KEY); ?>"></div>
+      <?php if (empty(RECAPTCHA_SITE_KEY)): ?>
+        <p style="color: #e53e3e; font-size: 0.875rem; margin-top: 0.5rem;">⚠️ reCAPTCHA is not configured. Please set RECAPTCHA_SITE_KEY in your .env file.</p>
+      <?php endif; ?>
+    </div>
+
+    <div class="form-group full">
       <button type="submit" class="btn-submit">Submit Registration</button>
     </div>
   </form>
 </section>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <?php include '../includes/footer.php'; ?>

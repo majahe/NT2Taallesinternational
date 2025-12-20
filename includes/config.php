@@ -25,4 +25,8 @@ define('WEBSITE_URL', env('WEBSITE_URL', 'https://nt2taallesinternational.com'))
 // SSL Settings (from environment variables, default false for local development)
 define('SMTP_SSL_VERIFY', env('SMTP_SSL_VERIFY', 'false') === 'true' || env('SMTP_SSL_VERIFY', false) === true);
 define('SMTP_DEBUG', env('SMTP_DEBUG', 'false') === 'true' || env('SMTP_DEBUG', false) === true);
+
+// reCAPTCHA Configuration (from environment variables)
+define('RECAPTCHA_SITE_KEY', env('RECAPTCHA_SITE_KEY', ''));
+define('RECAPTCHA_SECRET_KEY', env('RECAPTCHA_SECRET_KEY', ''));
 ?>
