@@ -6,16 +6,29 @@ session_start();
 
 // Check if form was submitted via POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    die('Invalid request method');
+    http_response_code(405);
+    $_SESSION['contact_errors'] = ['Invalid request method.'];
+    header('Location: /pages/contact.php');
+    exit;
 }
 
 try {
     // Include required files
     require_once __DIR__ . '/../includes/db_connect.php';
     require_once __DIR__ . '/../includes/config.php';
+    require_once __DIR__ . '/../includes/rate_limit.php';
     require __DIR__ . '/../includes/PHPMailer/src/Exception.php';
     require __DIR__ . '/../includes/PHPMailer/src/PHPMailer.php';
     require __DIR__ . '/../includes/PHPMailer/src/SMTP.php';
+
+    // Rate Limiting
+    if (!RateLimit::check('contact')) {
+        $remainingTime = RateLimit::getTimeUntilReset('contact');
+        $minutes = ceil($remainingTime / 60);
+        $_SESSION['contact_errors'] = ["Too many contact form submissions. Please try again in {$minutes} minute(s)."];
+        header('Location: /pages/contact.php');
+        exit;
+    }
     
     // Sanitize and validate input data
     function sanitize_input($data) {
@@ -197,6 +210,9 @@ try {
             // Log email error but continue (don't fail the form submission)
             error_log('Contact form email error: ' . $mail->ErrorInfo);
         }
+        
+        // Increment rate limit counter on successful submission
+        RateLimit::increment('contact');
         
         // Set success message
         $_SESSION['contact_success'] = 'Thank you for your message! We will get back to you within 24 hours.';

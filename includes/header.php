@@ -1,4 +1,10 @@
 <?php
+  // Include security headers
+  require_once __DIR__ . '/security_headers.php';
+  
+  // Include HTTPS enforcer (uncomment enforceHttps() call in https_enforcer.php for production)
+  require_once __DIR__ . '/https_enforcer.php';
+  
   $isInPages = strpos($_SERVER['SCRIPT_NAME'], '/pages/') !== false || strpos($_SERVER['PHP_SELF'], '/pages/') !== false;
   $basePath = $isInPages ? '../' : '';
 ?>

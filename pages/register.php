@@ -1,7 +1,19 @@
-<?php include '../includes/header.php'; ?>
+<?php 
+session_start();
+include '../includes/header.php';
+require_once __DIR__ . '/../includes/csrf.php';
+?>
 <section class="form-section">
   <h2>Register for a Course</h2>
+  
+  <?php if (isset($_SESSION['registration_error'])): ?>
+    <div class="alert alert-error" style="background: #fed7d7; color: #742a2a; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #e53e3e;">
+      <strong>Error:</strong> <?php echo htmlspecialchars($_SESSION['registration_error']); unset($_SESSION['registration_error']); ?>
+    </div>
+  <?php endif; ?>
+  
   <form action="../handlers/submit_registration.php" method="POST" class="form-grid">
+    <?php echo CSRF::getTokenField(); ?>
 
     <div class="form-row">
       <div class="form-group">

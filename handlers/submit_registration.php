@@ -11,23 +11,86 @@ try {
     require __DIR__ . '/../includes/PHPMailer/src/SMTP.php';
     require __DIR__ . '/../includes/config.php';
     require __DIR__ . '/../includes/db_connect.php';
+    require __DIR__ . '/../includes/csrf.php';
+    require __DIR__ . '/../includes/rate_limit.php';
+
+    // CSRF Protection
+    CSRF::requireToken();
+
+    // Rate Limiting
+    if (!RateLimit::check('registration')) {
+        $remainingTime = RateLimit::getTimeUntilReset('registration');
+        $minutes = ceil($remainingTime / 60);
+        $_SESSION['registration_error'] = "Too many registration attempts. Please try again in {$minutes} minute(s).";
+        header('Location: /pages/register.php');
+        exit;
+    }
 
     // Get form data with null coalescing operators for safety
-    $name = $_POST['name'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $course = $_POST['course'] ?? '';
-    $spoken_language = $_POST['spoken_language'] ?? '';
-    $preferred_time = $_POST['preferred_time'] ?? '';
-    $message = $_POST['message'] ?? '';
+    $name = trim($_POST['name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $course = trim($_POST['course'] ?? '');
+    $spoken_language = trim($_POST['spoken_language'] ?? '');
+    $preferred_time = trim($_POST['preferred_time'] ?? '');
+    $message = trim($_POST['message'] ?? '');
 
     // Validate required fields
     if (empty($name) || empty($email) || empty($course) || empty($spoken_language) || empty($preferred_time)) {
-        die("Missing required fields");
+        $_SESSION['registration_error'] = 'Please fill in all required fields.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    // Validate email format
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['registration_error'] = 'Please provide a valid email address.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    // Validate field lengths
+    if (strlen($name) > 100) {
+        $_SESSION['registration_error'] = 'Name is too long (maximum 100 characters).';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    if (strlen($email) > 255) {
+        $_SESSION['registration_error'] = 'Email address is too long.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    // Whitelist validation for course
+    $allowedCourses = ['Beginner Dutch', 'Intermediate Dutch', 'Advanced Dutch', 'Business Dutch', 'Conversation Practice'];
+    if (!in_array($course, $allowedCourses)) {
+        $_SESSION['registration_error'] = 'Invalid course selection.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    // Whitelist validation for spoken language
+    $allowedLanguages = ['Russian', 'English', 'Other'];
+    if (!in_array($spoken_language, $allowedLanguages)) {
+        $_SESSION['registration_error'] = 'Invalid language selection.';
+        header('Location: /pages/register.php');
+        exit;
+    }
+
+    // Whitelist validation for preferred time
+    $allowedTimes = ['Morning (9:00 - 12:00)', 'Afternoon (12:00 - 17:00)', 'Evening (17:00 - 21:00)'];
+    if (!in_array($preferred_time, $allowedTimes)) {
+        $_SESSION['registration_error'] = 'Invalid time selection.';
+        header('Location: /pages/register.php');
+        exit;
     }
 
     // Select the database first
-    if (!$conn->select_db('nt2_db')) {
-        die("Database selection failed: " . $conn->error);
+    if (!$conn->select_db(DB_NAME)) {
+        error_log("Database selection failed: " . $conn->error);
+        $_SESSION['registration_error'] = 'An error occurred. Please try again later.';
+        header('Location: /pages/register.php');
+        exit;
     }
 
     // Insert with prepared statement (prevents SQL injection)
@@ -35,16 +98,25 @@ try {
     $stmt = $conn->prepare($sql);
 
     if (!$stmt) {
-        die("Prepare failed: " . $conn->error);
+        error_log("Prepare failed: " . $conn->error);
+        $_SESSION['registration_error'] = 'An error occurred. Please try again later.';
+        header('Location: /pages/register.php');
+        exit;
     }
 
     $stmt->bind_param("ssssss", $name, $email, $course, $spoken_language, $preferred_time, $message);
 
     if (!$stmt->execute()) {
-        die("Database insert failed: " . $stmt->error);
+        error_log("Database insert failed: " . $stmt->error);
+        $_SESSION['registration_error'] = 'An error occurred. Please try again later.';
+        header('Location: /pages/register.php');
+        exit;
     }
 
     $stmt->close();
+
+    // Increment rate limit counter on successful submission
+    RateLimit::increment('registration');
 
     // --- MAIL CONFIG ---
     $mail = new PHPMailer(true);
@@ -73,13 +145,19 @@ try {
         $mail->addAddress($email);
         $mail->isHTML(true);
 
+        // Sanitize all user input for email content
+        $nameSafe = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+        $courseSafe = htmlspecialchars($course, ENT_QUOTES, 'UTF-8');
+        $spokenLanguageSafe = htmlspecialchars($spoken_language, ENT_QUOTES, 'UTF-8');
+        $preferredTimeSafe = htmlspecialchars($preferred_time, ENT_QUOTES, 'UTF-8');
+
         $content = "
-          <p>Dear $name,</p>
+          <p>Dear {$nameSafe},</p>
           <p>Thank you for registering for a Dutch course at <strong>NT2 Taalles International</strong>!</p>
           <p>Your registration is currently <strong>under review</strong>.</p>
-          <p><strong>Course:</strong> $course<br>
-             <strong>Native Language:</strong> $spoken_language<br>
-             <strong>Preferred Time:</strong> $preferred_time</p>
+          <p><strong>Course:</strong> {$courseSafe}<br>
+             <strong>Native Language:</strong> {$spokenLanguageSafe}<br>
+             <strong>Preferred Time:</strong> {$preferredTimeSafe}</p>
           <p>We will contact you soon with more details.</p>
           <p>Warm regards,<br><strong>Maico Heemskerk</strong><br>NT2 Taalles International</p>";
 
@@ -111,14 +189,19 @@ try {
         $adminMail->addAddress(ADMIN_EMAIL);
         $adminMail->isHTML(true);
 
+        // Sanitize all user input for admin email
+        $emailSafe = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+        $messageSafe = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+        $messageDisplay = !empty($messageSafe) ? nl2br($messageSafe) : 'No message provided';
+
         $adminContent = "
           <p><strong>New Registration Received</strong></p>
-          <p><strong>Name:</strong> $name<br>
-             <strong>Email:</strong> $email<br>
-             <strong>Course:</strong> $course<br>
-             <strong>Native Language:</strong> $spoken_language<br>
-             <strong>Preferred Time:</strong> $preferred_time<br>
-             <strong>Message:</strong> $message</p>";
+          <p><strong>Name:</strong> {$nameSafe}<br>
+             <strong>Email:</strong> {$emailSafe}<br>
+             <strong>Course:</strong> {$courseSafe}<br>
+             <strong>Native Language:</strong> {$spokenLanguageSafe}<br>
+             <strong>Preferred Time:</strong> {$preferredTimeSafe}<br>
+             <strong>Message:</strong> {$messageDisplay}</p>";
 
         $adminMail->Subject = "New Course Registration";
         $adminMail->Body = $adminContent;
@@ -135,6 +218,9 @@ try {
     exit;
 
 } catch (Exception $e) {
-    die("Error: " . $e->getMessage());
+    error_log("Registration error: " . $e->getMessage());
+    $_SESSION['registration_error'] = 'An error occurred. Please try again later.';
+    header('Location: /pages/register.php');
+    exit;
 }
 ?>
