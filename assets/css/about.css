@@ -2,7 +2,7 @@
 
 /* Hero Section */
 .about-hero {
-  background: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #4a90e2 100%);
+  background: radial-gradient(circle at 50% 50%, rgba(17, 108, 228, 1) 0%, rgba(255, 255, 255, 1) 100%);
   padding: 4rem 2rem;
   text-align: center;
   color: white;

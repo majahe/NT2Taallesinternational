@@ -3,10 +3,10 @@
 require_once __DIR__ . '/env_loader.php';
 
 // Database Configuration (from environment variables with fallback)
-define('DB_HOST', env('DB_HOST', 'localhost'));
-define('DB_USER', env('DB_USER', 'root'));
-define('DB_PASS', env('DB_PASS', ''));
-define('DB_NAME', env('DB_NAME', 'nt2_db'));
+define('DB_HOST', 'localhost');
+define('DB_USER', 'nt2_user');
+define('DB_PASS', 'STERK_WACHTWOORD');
+define('DB_NAME', 'nt2_db');
 
 // SMTP Configuration (from environment variables with fallback)
 define('SMTP_HOST', env('SMTP_HOST', 'smtp.gmail.com'));
@@ -20,7 +20,9 @@ define('SMTP_FROM_NAME', env('SMTP_FROM_NAME', 'NT2 Taalles International'));
 define('ADMIN_EMAIL', env('ADMIN_EMAIL', 'info@nt2taallesinternational.com'));
 
 // Website Configuration
-define('WEBSITE_URL', env('WEBSITE_URL', 'https://nt2taallesinternational.com'));
+//define('WEBSITE_URL', env('WEBSITE_URL', 'https://nt2taallesinternational.com'));
+define('WEBSITE_URL', env('WEBSITE_URL', 'http://localhost'));
+
 
 // SSL Settings (from environment variables, default false for local development)
 define('SMTP_SSL_VERIFY', env('SMTP_SSL_VERIFY', 'false') === 'true' || env('SMTP_SSL_VERIFY', false) === true);
