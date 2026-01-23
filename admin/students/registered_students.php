@@ -4,6 +4,7 @@ require_admin_auth();
 
 include '../../includes/db_connect.php';
 require_once __DIR__ . '/../../includes/database/QueryBuilder.php';
+require_once __DIR__ . '/../../includes/csrf.php';
 $db = new QueryBuilder($conn);
 
 // Ensure necessary columns exist
@@ -74,6 +75,75 @@ if (isset($_POST['update_student'])) {
     }
 }
 
+// Reset course progress for a student
+if (isset($_POST['reset_course'])) {
+    if (!CSRF::validateToken($_POST['csrf_token'] ?? '')) {
+        header("Location: registered_students.php?error=Invalid CSRF token");
+        exit;
+    }
+
+    $student_id = intval($_POST['student_id'] ?? 0);
+    $course_id = intval($_POST['course_id'] ?? 0);
+
+    if ($student_id <= 0 || $course_id <= 0) {
+        header("Location: registered_students.php?error=Invalid student or course");
+        exit;
+    }
+
+    $stmt = $conn->prepare("SELECT 1 FROM student_enrollments WHERE student_id = ? AND course_id = ? LIMIT 1");
+    $stmt->bind_param("ii", $student_id, $course_id);
+    $stmt->execute();
+    $stmt->store_result();
+    if ($stmt->num_rows === 0) {
+        $stmt->close();
+        header("Location: registered_students.php?error=Student is not enrolled in that course");
+        exit;
+    }
+    $stmt->close();
+
+    $stmt = $conn->prepare("
+        DELETE FROM student_progress 
+        WHERE student_id = ? 
+        AND lesson_id IN (
+            SELECT l.id 
+            FROM lessons l
+            JOIN course_modules m ON l.module_id = m.id
+            WHERE m.course_id = ?
+        )
+    ");
+    $stmt->bind_param("ii", $student_id, $course_id);
+    $stmt->execute();
+    $stmt->close();
+
+    $stmt = $conn->prepare("
+        DELETE FROM student_assignments 
+        WHERE student_id = ? 
+        AND assignment_id IN (
+            SELECT a.id 
+            FROM assignments a
+            JOIN lessons l ON a.lesson_id = l.id
+            JOIN course_modules m ON l.module_id = m.id
+            WHERE m.course_id = ?
+        )
+    ");
+    $stmt->bind_param("ii", $student_id, $course_id);
+    $stmt->execute();
+    $stmt->close();
+
+    $course_title = 'Course';
+    $stmt = $conn->prepare("SELECT title FROM courses WHERE id = ?");
+    $stmt->bind_param("i", $course_id);
+    $stmt->execute();
+    $stmt->bind_result($course_title_db);
+    if ($stmt->fetch()) {
+        $course_title = $course_title_db;
+    }
+    $stmt->close();
+
+    header("Location: registered_students.php?success=" . urlencode("Course reset completed for " . $course_title));
+    exit;
+}
+
 // Change status to Registered
 if (isset($_POST['register_student'])) {
     $id = intval($_POST['id']);
@@ -97,6 +167,12 @@ $result = $conn->query("SELECT * FROM registrations WHERE status='Registered' OR
 $total_registered = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Registered'")->fetch_assoc()['c'];
 $total_paid = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Registered' AND payment_status='Paid'")->fetch_assoc()['c'];
 $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE status='Registered' AND payment_status='Pending'")->fetch_assoc()['c'];
+
+$courses = [];
+$courses_result = $conn->query("SELECT id, title, is_active FROM courses ORDER BY title");
+if ($courses_result) {
+    $courses = $courses_result->fetch_all(MYSQLI_ASSOC);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -334,6 +410,19 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
       color: #065f46;
       border: 1px solid #6ee7b7;
     }
+    .alert-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .warning-text {
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      padding: 0.6rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
   </style>
   <script>
     function openEditModal(id, name, email, course, startDate, endDate, paymentStatus, amountPaid, totalAmount, phone, address, emergency, notes, lessons, pricePerLesson) {
@@ -382,6 +471,16 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
         }
       });
     }
+
+    function openResetCourseModal(id, name, email) {
+      document.getElementById('resetCourseModal').classList.add('show');
+      document.getElementById('resetStudentId').value = id;
+      document.getElementById('resetStudentName').textContent = name + ' (' + email + ')';
+    }
+
+    function closeResetCourseModal() {
+      document.getElementById('resetCourseModal').classList.remove('show');
+    }
   </script>
 </head>
 <body class="registered-body">
@@ -396,6 +495,9 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
 
 <?php if (isset($_GET['success'])): ?>
   <div class="alert alert-success"><?= htmlspecialchars($_GET['success']) ?></div>
+<?php endif; ?>
+<?php if (isset($_GET['error'])): ?>
+  <div class="alert alert-error"><?= htmlspecialchars($_GET['error']) ?></div>
 <?php endif; ?>
 
 <div class="stats-container">
@@ -463,6 +565,7 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
     
     <div class="card-actions" onclick="event.stopPropagation();">
       <button onclick="openGrantAccessModal(<?= $row['id'] ?>, '<?= htmlspecialchars(addslashes($row['name'])) ?>', '<?= htmlspecialchars(addslashes($row['email'])) ?>'); return false;" class="btn-small" style="background: #10b981; color: white;">Grant Course Access</button>
+      <button onclick="openResetCourseModal(<?= $row['id'] ?>, '<?= htmlspecialchars(addslashes($row['name'])) ?>', '<?= htmlspecialchars(addslashes($row['email'])) ?>'); return false;" class="btn-small" style="background: #f59e0b; color: white;">Reset Course</button>
       <a href="?delete=<?= $row['id'] ?>" class="btn-small btn-danger-small" onclick="return confirm('Delete this student record?')">Delete</a>
     </div>
   </div>
@@ -568,11 +671,13 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
         <select id="grantCourseId" name="course_id" required>
           <option value="">Select a course</option>
           <?php
-          $courses_result = $conn->query("SELECT id, title FROM courses WHERE is_active = 1 ORDER BY title");
-          while ($course = $courses_result->fetch_assoc()):
+          foreach ($courses as $course):
+            if (empty($course['is_active'])) {
+                continue;
+            }
           ?>
             <option value="<?= $course['id'] ?>"><?= htmlspecialchars($course['title']) ?></option>
-          <?php endwhile; ?>
+          <?php endforeach; ?>
         </select>
       </div>
       
@@ -585,6 +690,37 @@ $total_pending = $conn->query("SELECT COUNT(*) AS c FROM registrations WHERE sta
       <div class="modal-buttons">
         <button type="button" class="btn-cancel" onclick="closeGrantAccessModal()">Cancel</button>
         <button type="submit" class="btn-primary">Grant Access</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Reset Course Modal -->
+<div id="resetCourseModal" class="modal-overlay" onclick="if(event.target === this) closeResetCourseModal()">
+  <div class="modal-content">
+    <h2>Reset Course Progress</h2>
+    <p id="resetStudentName"></p>
+    <p class="warning-text">This will delete lesson progress and assignment submissions for the selected course. Enrollment stays active.</p>
+
+    <form method="POST" action="" onsubmit="return confirm('Reset progress and assignments for this course?');">
+      <?= CSRF::getTokenField() ?>
+      <input type="hidden" id="resetStudentId" name="student_id">
+
+      <div class="form-group">
+        <label>Select Course *</label>
+        <select name="course_id" required>
+          <option value="">Select a course</option>
+          <?php foreach ($courses as $course): ?>
+            <option value="<?= $course['id'] ?>">
+              <?= htmlspecialchars($course['title']) ?><?= empty($course['is_active']) ? ' (inactive)' : '' ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="modal-buttons">
+        <button type="button" class="btn-cancel" onclick="closeResetCourseModal()">Cancel</button>
+        <button type="submit" name="reset_course" class="btn-primary">Reset Course</button>
       </div>
     </form>
   </div>
